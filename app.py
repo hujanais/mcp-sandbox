@@ -59,3 +59,4 @@ def call_function(name, args):
 if __name__ == "__main__":
     # simple_chat()
     simple_tools()
+    
