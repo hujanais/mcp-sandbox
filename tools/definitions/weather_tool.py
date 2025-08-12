@@ -2,7 +2,7 @@ weather_tool_definition = {
     "type": "function",
     "function": {
         "name": "get_weather",
-        "description": "Get current temperature for provided coordinates in celsius.",
+        "description": "Get current weather condition for provided location.",
         "parameters": {
             "type": "object",
             "properties": {

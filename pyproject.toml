@@ -1,17 +1,23 @@
 [project]
-name = "themis-mcp"
+name = "mcp-terminal"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ollama>=0.5.1",
-    "openai>=1.97.1",
+    "mcp[cli]>=1.12.4",
+    "openai>=1.99.6",
+    "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.1.1",
     "requests>=2.32.4",
+    "sqlalchemy>=2.0.42",
 ]
 
 [dependency-groups]
 dev = [
-    "ruff>=0.12.6",
+    "ruff>=0.12.8",
 ]
+
+[tool.ruff]
+line-length = 120
