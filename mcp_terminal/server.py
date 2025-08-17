@@ -1,4 +1,10 @@
+import sys
+# sys.path.append("/tools") # Replace with the actual path
+# sys.path.append("/database")
+
 from mcp.server.fastmcp import FastMCP
+
+from database.db_utils import get_model
 
 from tools.terminal_tool import (
     change_directory,
@@ -25,6 +31,8 @@ mcp.add_tool(write_file)
 mcp.add_tool(read_file)
 mcp.add_tool(insert_file_content)
 mcp.add_tool(update_file_content)
+
+mcp.add_tool(get_model)
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse
