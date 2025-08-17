@@ -36,7 +36,7 @@ class AppContext:
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     # Initialize resources on startup
-    db_utils = DBUtils(reset_db=False)  # Set reset_db=True to drop and recreate tables
+    db_utils = DBUtils(reset_db=True)  # Set reset_db=True to drop and recreate tables
     try:
         # Make resources available during operation
         yield AppContext(db=db_utils)
@@ -47,7 +47,7 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 # Create the MCP server instance
 mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
-mcp.add_tool(execute_command)
+# mcp.add_tool(execute_command)
 # mcp.add_tool(get_command_history)
 # mcp.add_tool(get_current_directory)
 # mcp.add_tool(delete_file_content)
@@ -58,10 +58,24 @@ mcp.add_tool(execute_command)
 # mcp.add_tool(insert_file_content)
 # mcp.add_tool(update_file_content)
 
-def query_db(ctx: Context) -> str:
-    """Tool that uses initialized resources"""
+@mcp.tool()
+def create_model(ctx: Context, model_name: str):
+    """
+    Create a new model in the database.
+    
+    Args:
+        model_name (str): The name of the model to be created.
+        
+    Returns:
+        Model: The newly created model object with generated model_id.
+        
+    Example:
+        >>> model = create_model("bert-base-uncased")
+        >>> print(f"Created model: {model.model_id} - {model.model_name}")
+    """
     db = ctx.request_context.lifespan_context.db
-    return db.query()
+    newModel = db.create_model(model_name)
+    return {"model_id": newModel.model_id, "model_name": newModel.model_name}
 
 @mcp.tool()
 def get_model(ctx: Context, model_id: Optional[str] = None):
@@ -79,7 +93,7 @@ def get_model(ctx: Context, model_id: Optional[str] = None):
         >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
     """
     db = ctx.request_context.lifespan_context.db
-    return db.get_model(model_id)
+    return [{"model_id": model.model_id, "model_name": model.model_name} for model in db.get_model(model_id)]
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse

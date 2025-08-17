@@ -200,7 +200,7 @@ class DBUtils:
             >>> print(f"Updated model name to: {updated_model.model_name}")
         """
         with self.get_db() as db:
-            model = get_model(db, model_id)
+            model = self.get_model(db, model_id)
             if model:
                 model.model_name = new_name
                 db.commit()
@@ -315,7 +315,7 @@ class DBUtils:
             >>> print(f"Dataset deletion: {'Success' if success else 'Failed'}")
         """
         with self.get_db() as db:
-            dataset = get_dataset(db, dataset_id)
+            dataset = self.get_dataset(db, dataset_id)
             if dataset:
                 db.delete(dataset)
                 db.commit()
