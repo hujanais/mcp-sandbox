@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  mcp_test_db:
+    image: postgres:14.6
+    environment:
+      - POSTGRES_USER=user@email.com
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=mcp_test
+    ports:
+      - "5442:5432"
+    volumes:
+      - ./data/postgres/mcp_test:/var/lib/postgresql/data
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge

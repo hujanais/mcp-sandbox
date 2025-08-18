@@ -2,6 +2,7 @@ import asyncio
 
 from contextlib import contextmanager
 from ctypes import Union
+import sys
 from typing import Optional
 from uuid import uuid4
 from requests import Session
@@ -13,6 +14,14 @@ from sqlalchemy.orm import joinedload
 from dotenv import load_dotenv
 import enum
 import os
+
+import pydantic_models
+
+
+sys.path.append("./database")  # Replace with the actual path
+# from database.pydantic_models import PyModel
+
+print(sys.path)
 
 # from models import Base, Dataset, Model, Result, Task, TaskStatus
 
@@ -465,10 +474,19 @@ class DBUtils:
         """
         with self.get_db() as db:
             if result_id:
-                return db.query(Result).options(joinedload(Task.model)).filter(Result.result_id == result_id)
+                return db.query(Result)\
+                .join(Result.task)\
+                .join(Task.model)\
+                .filter(Result.result_id == result_id)
 
-            return db.query(Result).all()
+            # Option 2: Using relationship-based joins
+            results = db.query(Result)\
+                .join(Result.task)\
+                .join(Task.model)\
+                .all()
+            return results
 
+        return results
     def update_result_value(self, result_id: str, new_value: float) -> Result:
         """
         Update the value of an existing result.
@@ -515,29 +533,47 @@ class DBUtils:
             return False
 
 if __name__ == "__main__":
-    db_utils = DBUtils(reset_db=True)  # Set to True to reset the database
-    # db_utils.execute_sql_script("SELECT * FROM model")  # Example usage
+    pyModel = pydantic_models.PyModel()
+
+    db_utils = DBUtils(reset_db=False)  # Set to True to reset the database
+    sql = """
+    SELECT * FROM public.result as RESULT
+    INNER JOIN
+        public.task AS TASK
+        ON TASK.task_id = RESULT.task_id
+    INNER JOIN
+        public.model AS MODEL
+        ON MODEL.model_id = TASK.model_id   
+    """
+
+    # results = db_utils.execute_sql_script(sql)  # Example usage
+    # for result in results:
+    #     print(result)
 
     # # Create models
-    m1 = db_utils.create_model('model_a')
-    m2 = db_utils.create_model('model_b')
+    # m1 = db_utils.create_model('model_a')
+    # m2 = db_utils.create_model('model_b')
 
-    # Create datasets
-    d1 = db_utils.create_dataset('dataset_a')
-    d2 = db_utils.create_dataset('dataset_b')
-    d3 = db_utils.create_dataset('dataset_c')
-    d4 = db_utils.create_dataset('dataset_d')
+    # # Create datasets
+    # d1 = db_utils.create_dataset('dataset_a')
+    # d2 = db_utils.create_dataset('dataset_b')
+    # d3 = db_utils.create_dataset('dataset_c')
+    # d4 = db_utils.create_dataset('dataset_d')g
 
-    # Create tasks
-    task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
+    # # Create tasks
+    # task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    # task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    # task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
 
-    # Create Results
-    db_utils.create_result(task1.task_id, 'dog', 90.9)
-    db_utils.create_result(task1.task_id, 'cat', 78.9)
-    db_utils.create_result(task1.task_id, 'bird', 34.9)
+    # # Create Results
+    # db_utils.create_result(task1.task_id, 'dog', 90.9)
+    # db_utils.create_result(task1.task_id, 'cat', 78.9)
+    # db_utils.create_result(task1.task_id, 'bird', 34.9)
 
-    db_utils.create_result(task2.task_id, 'dog', 60.9)
-    db_utils.create_result(task2.task_id, 'cat', 98.9)
-    db_utils.create_result(task2.task_id, 'bird', 88.9)
+    # db_utils.create_result(task2.task_id, 'dog', 60.9)
+    # db_utils.create_result(task2.task_id, 'cat', 98.9)
+    # db_utils.create_result(task2.task_id, 'bird', 88.9)
+
+    results = db_utils.get_result('3')
+    for result in results:
+        print({"result_id": result.result_id, "category": result.category, "value": result.value, "model_id": result.task.model.model_id, "model_name": result.task.model.model_name} )

@@ -4,11 +4,7 @@ from dataclasses import dataclass
 import sys
 from typing import AsyncIterator, Optional
 
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-
-# sys.path.append("/mcp_terminal/database")  # Replace with the actual path
+sys.path.append("./database")  # Replace with the actual path
 # sys.path.append("/tools") # Replace with the actual path
 # sys.path.append("/database")
 
@@ -46,7 +42,10 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
         print("Cleaning up resources...")
 
 # Create the MCP server instance
+print("#################")
+print(sys.path)
 mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
+
 # mcp.add_tool(execute_command)
 # mcp.add_tool(get_command_history)
 # mcp.add_tool(get_current_directory)
@@ -94,6 +93,25 @@ def get_model(ctx: Context, model_id: Optional[str] = None):
     """
     db = ctx.request_context.lifespan_context.db
     return [{"model_id": model.model_id, "model_name": model.model_name} for model in db.get_model(model_id)]
+
+@mcp.tool()
+def get_result(ctx: Context, result_id: Optional[str] = None):
+        """
+        Retrieve result(s) from the database.
+        
+        Args:
+            result_id (Optional[str]): The specific result ID to retrieve. If None, returns all results.
+            
+        Returns:
+            list[Result]: List of Result objects. If result_id is provided, returns a list with one result.
+            
+        Example:
+            >>> all_results = get_result()  # Get all results
+            >>> specific_result = get_result("123e4567-e89b-12d3-a456-426614174000")  # Get specific result
+        """
+        db = ctx.request_context.lifespan_context.db
+        results = db.get_result(result_id)
+        return [{"result_id": result.result_id, "category": result.category, "value": result.value, "model_id": result.task.model.model_id, "model_name": result.task.model.model_name} for result in results]
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse
