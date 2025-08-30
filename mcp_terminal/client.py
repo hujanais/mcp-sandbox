@@ -3,32 +3,29 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
 
+from mcp_client import MCPClient
+
 async def main():
-    # Define server parameters
-    server_params = StdioServerParameters(
-        command="python",  # The command to run your server
-        args=["server.py"],  # Arguments to the command
-    )
+    mcpClient = MCPClient()
+    await mcpClient.connect()
+    
+    try:
+        while True:
+            user_input = input("Enter your prompt (or type 'exit()' to quit): ")
+            user_input = user_input.strip()
+            if user_input == "exit()":
+                print("Exiting...")
+                break
+            if 'exit' in user_input:
+                print("Do you mean to exit? Please type 'exit()' to quit.")
+                break
+            resp = await mcpClient.process_query(user_input)
+            print(resp)
 
-
-    # Connect to the server
-    # async with stdio_client(server_params) as (read_stream, write_stream):
-    async with sse_client("http://localhost:8050/sse") as (read_stream, write_stream):
-        async with ClientSession(read_stream, write_stream) as session:
-            # Initialize the connection
-            await session.initialize()
-
-            # List available tools
-            tools_result = await session.list_tools()
-            print("Available tools:")
-            for tool in tools_result.tools:
-                print(f"  - {tool.name}: {tool.description}")
-
-
-            # Call our calculator tool
-            result = await session.call_tool("execute_command", arguments={'command': 'ls -l'})
-            print(f"{result.content[0].text}")
-
-
+    except KeyboardInterrupt:
+        await mcpClient.cleanup()
+        print("\nExiting...")
+    
 if __name__ == "__main__":
     asyncio.run(main())
+
