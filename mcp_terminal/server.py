@@ -1,10 +1,12 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
+import json
 import sys
 from typing import AsyncIterator, Optional
 
 import os
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 
@@ -26,6 +28,7 @@ from tools.terminal_tool import (
     write_file,
     update_file_content,
 )
+from tools.db_tool import execute_sql
 
 # Define a type-safe context class
 @dataclass
@@ -36,7 +39,7 @@ class AppContext:
 @asynccontextmanager
 async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
     # Initialize resources on startup
-    db_utils = DBUtils(reset_db=True)  # Set reset_db=True to drop and recreate tables
+    db_utils = DBUtils(reset_db=False)  # Set reset_db=True to drop and recreate tables
     try:
         # Make resources available during operation
         yield AppContext(db=db_utils)
@@ -57,6 +60,24 @@ mcp.add_tool(write_file)
 mcp.add_tool(read_file)
 mcp.add_tool(insert_file_content)
 mcp.add_tool(update_file_content)
+
+@mcp.tool()
+def introspect_db(ctx: Context):
+    """
+    Retrieve the database schema and useful information about the database.
+    """
+    db = ctx.request_context.lifespan_context.db
+    return db.introspect_schema()
+
+@mcp.tool()
+def execute_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
+    """
+    Execute the SQL script for all database requests.
+    """
+    db = ctx.request_context.lifespan_context.db
+    print(f"Executing SQL command: {command} with timeout {timeout}")
+    rows = db.execute_sql_script(command)
+    return str(rows)
 
 # @mcp.tool()
 # def create_model(ctx: Context, model_name: str):

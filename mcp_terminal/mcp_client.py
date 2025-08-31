@@ -25,6 +25,8 @@ class MCPClient:
         self.openai_client = AsyncOpenAI(api_key=api_key)
         self.model = "o4-mini"
 
+        self.system_prompt: str = ""
+
     async def connect(self):
         """Connect to the MCP server and list available tools."""
 
@@ -46,7 +48,11 @@ class MCPClient:
         print("Available tools:")
         for tool in available_tools:
             print(tool['function']['name'])
-    
+
+        # Get database schema for system prompt
+        db_schema = await self.session.call_tool("introspect_db", {})
+        self.system_prompt = f"You are an AI assistant with access to the following database schema:\n{db_schema.content[0].text}\nUse this information to assist with user queries."
+
     async def get_mcp_tools(self) -> List[Dict[str, Any]]:
         """Get available tools from the MCP server in OpenAI format.
 
@@ -81,7 +87,10 @@ class MCPClient:
         # Initial OpenAI API call
         response = await self.openai_client.chat.completions.create(
             model=self.model,
-            messages=[{"role": "user", "content": query}],
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": query}
+            ],
             tools=tools,
             tool_choice="auto",
         )

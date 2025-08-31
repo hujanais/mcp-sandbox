@@ -8,7 +8,7 @@ from mcp_client import MCPClient
 async def main():
     mcpClient = MCPClient()
     await mcpClient.connect()
-    
+
     try:
         while True:
             user_input = input("Enter your prompt (or type 'exit()' to quit): ")

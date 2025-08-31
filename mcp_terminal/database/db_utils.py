@@ -1,12 +1,14 @@
 import asyncio
 
+from collections.abc import Sequence
 from contextlib import contextmanager
 from ctypes import Union
-from typing import Optional
+import json
+from typing import Any, Optional
 from uuid import uuid4
 from requests import Session
 from sqlalchemy import (
-    Integer, create_engine, Column, String, Float, Enum, ForeignKey, Table, text
+    Integer, MetaData, create_engine, Column, String, Float, Enum, ForeignKey, Table, text, Row
 )
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy.orm import joinedload
@@ -128,18 +130,45 @@ class DBUtils:
         finally:
             db.close()
 
-    def execute_sql_script(self, sql_statement: str):
+    def introspect_schema(self):
+        # Use the engine to reflect the database schema
+        metadata = MetaData()
+        metadata.reflect(bind=self.engine)
+
+        schema_info = {}
+        for table in metadata.tables.values():
+            columns = {column.name: str(column.type) for column in table.columns}
+            
+            # Get foreign key relationships
+            foreign_keys = {}
+            for column in table.columns:
+                # Check if the column has foreign key constraints
+                if column.foreign_keys:
+                    foreign_keys[column.name] = [fk.column.table.name for fk in column.foreign_keys]
+            
+            schema_info[table.name] = {
+                "columns": columns,
+                "foreign_keys": foreign_keys
+            }
+        
+        schema_json = json.dumps(schema_info, indent=4)
+        print(schema_json)
+        return schema_json
+
+    def execute_sql_script(self, sql_statement: str) -> Sequence[Row[Any]]:
         """
         Execute the SQL script using the get_db session context.
         """
         with self.get_db() as db:
-            result = db.execute(text(sql_statement))
             try:
+                result = db.execute(text(sql_statement))
                 rows = result.fetchall()
+                for row in rows:
+                    print(row)
                 return rows
-            except Exception:
+            except Exception as e:
                 # e.g. for DDL statements (CREATE, DROP) fetchall() will fail
-                print("SQL executed successfully (no rows returned).")
+                print(f"Error executing SQL: {e}")
                 return None
 
     # --- MODEL CRUD ---
@@ -515,29 +544,48 @@ class DBUtils:
             return False
 
 if __name__ == "__main__":
-    db_utils = DBUtils(reset_db=True)  # Set to True to reset the database
+    db_utils = DBUtils(reset_db=False)  # Set to True to reset the database
+
+    try:
+        while True:
+            user_input = input("Enter your prompt (or type 'exit()' to quit): ")
+            user_input = user_input.strip()
+            if user_input == "exit()":
+                print("Exiting...")
+                break
+            if 'exit' in user_input:
+                print("Do you mean to exit? Please type 'exit()' to quit.")
+                break
+
+            resp = db_utils.execute_sql_script(user_input)
+            print(resp)
+
+    except KeyboardInterrupt:
+        print("\nExiting...")
+
+    # db_utils.execute_sql_script("SELECT * FROM model")  # Example usage
     # db_utils.execute_sql_script("SELECT * FROM model")  # Example usage
 
     # # Create models
-    m1 = db_utils.create_model('model_a')
-    m2 = db_utils.create_model('model_b')
+    # m1 = db_utils.create_model('model_a')
+    # m2 = db_utils.create_model('model_b')
 
-    # Create datasets
-    d1 = db_utils.create_dataset('dataset_a')
-    d2 = db_utils.create_dataset('dataset_b')
-    d3 = db_utils.create_dataset('dataset_c')
-    d4 = db_utils.create_dataset('dataset_d')
+    # # Create datasets
+    # d1 = db_utils.create_dataset('dataset_a')
+    # d2 = db_utils.create_dataset('dataset_b')
+    # d3 = db_utils.create_dataset('dataset_c')
+    # d4 = db_utils.create_dataset('dataset_d')
 
-    # Create tasks
-    task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
+    # # Create tasks
+    # task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    # task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    # task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
 
-    # Create Results
-    db_utils.create_result(task1.task_id, 'dog', 90.9)
-    db_utils.create_result(task1.task_id, 'cat', 78.9)
-    db_utils.create_result(task1.task_id, 'bird', 34.9)
+    # # Create Results
+    # db_utils.create_result(task1.task_id, 'dog', 90.9)
+    # db_utils.create_result(task1.task_id, 'cat', 78.9)
+    # db_utils.create_result(task1.task_id, 'bird', 34.9)
 
-    db_utils.create_result(task2.task_id, 'dog', 60.9)
-    db_utils.create_result(task2.task_id, 'cat', 98.9)
-    db_utils.create_result(task2.task_id, 'bird', 88.9)
+    # db_utils.create_result(task2.task_id, 'dog', 60.9)
+    # db_utils.create_result(task2.task_id, 'cat', 98.9)
+    # db_utils.create_result(task2.task_id, 'bird', 88.9)
