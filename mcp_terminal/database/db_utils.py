@@ -5,7 +5,6 @@ from contextlib import contextmanager
 from ctypes import Union
 import json
 from typing import Any, Optional
-from uuid import uuid4
 from requests import Session
 from sqlalchemy import (
     Integer, MetaData, create_engine, Column, String, Float, Enum, ForeignKey, Table, text, Row
@@ -31,20 +30,20 @@ class TaskStatus(enum.Enum):
 task_dataset_association = Table(
     "task_dataset",
     Base.metadata,
-    Column("task_id", String, ForeignKey("task.task_id", ondelete="CASCADE"), primary_key=True),
-    Column("dataset_id", String, ForeignKey("dataset.dataset_id", ondelete="CASCADE"), primary_key=True)
+    Column("task_id", Integer, ForeignKey("task.task_id", ondelete="CASCADE"), primary_key=True),
+    Column("dataset_id", Integer, ForeignKey("dataset.dataset_id", ondelete="CASCADE"), primary_key=True)
 )
 
 class Model(Base):
     __tablename__ = "model"
-    model_id = Column(String, primary_key=True)
+    model_id = Column(Integer, primary_key=True, autoincrement=True)
     model_name = Column(String, nullable=False)
 
     tasks = relationship("Task", back_populates="model", cascade="all, delete")
 
 class Dataset(Base):
     __tablename__ = "dataset"
-    dataset_id = Column(String, primary_key=True)
+    dataset_id = Column(Integer, primary_key=True, autoincrement=True)
     dataset_name = Column(String, nullable=False)
 
     tasks = relationship(
@@ -55,8 +54,8 @@ class Dataset(Base):
 
 class Task(Base):
     __tablename__ = "task"
-    task_id = Column(String, primary_key=True)
-    model_id = Column(String, ForeignKey("model.model_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, primary_key=True, autoincrement=True)
+    model_id = Column(Integer, ForeignKey("model.model_id", ondelete="CASCADE"), nullable=False)
     status = Column(Enum(TaskStatus), nullable=False)
 
     model = relationship("Model", back_populates="tasks")
@@ -70,7 +69,7 @@ class Task(Base):
 class Result(Base):
     __tablename__ = "result"
     result_id = Column(Integer, primary_key=True, autoincrement=True)
-    task_id = Column(String, ForeignKey("task.task_id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(Integer, ForeignKey("task.task_id", ondelete="CASCADE"), nullable=False)
     value = Column(Float, nullable=False)
     category = Column(String, nullable=True)
 
@@ -155,9 +154,9 @@ class DBUtils:
         print(schema_json)
         return schema_json
 
-    def execute_sql_script(self, sql_statement: str) -> Sequence[Row[Any]]:
+    def execute_fetch_sql_script(self, sql_statement: str) -> Sequence[Row[Any]]:
         """
-        Execute the SQL script using the get_db session context.
+        Execute the SQL script for requesting informatiion from the database like SELECT.
         """
         with self.get_db() as db:
             try:
@@ -166,6 +165,20 @@ class DBUtils:
                 for row in rows:
                     print(row)
                 return rows
+            except Exception as e:
+                # e.g. for DDL statements (CREATE, DROP) fetchall() will fail
+                print(f"Error executing SQL: {e}")
+                return None
+
+    def execute_mutate_sql_script(self, sql_statement: str) -> Sequence[Row[Any]]:
+        """
+        Execute the SQL script for mutating the database like INSERT, UPDATE, DELETE.
+        """
+        with self.get_db() as db:
+            try:
+                result = db.execute(text(sql_statement))
+                db.commit()  # Commit the transaction if it's an INSERT or UPDATE
+                return "SQL statement executed successfully."
             except Exception as e:
                 # e.g. for DDL statements (CREATE, DROP) fetchall() will fail
                 print(f"Error executing SQL: {e}")
@@ -187,7 +200,7 @@ class DBUtils:
             >>> print(f"Created model: {model.model_id} - {model.model_name}")
         """
         with self.get_db() as db:
-            model = Model(model_id=str(uuid4()), model_name=model_name)
+            model = Model(model_name=model_name)
             db.add(model)
             db.commit()
             db.refresh(model)
@@ -277,7 +290,7 @@ class DBUtils:
             >>> print(f"Created dataset: {dataset.dataset_id} - {dataset.dataset_name}")
         """
         with self.get_db() as db:
-            dataset = Dataset(dataset_id=str(uuid4()), dataset_name=dataset_name)
+            dataset = Dataset(dataset_name=dataset_name)
             db.add(dataset)
             db.commit()
             db.refresh(dataset)
@@ -371,7 +384,6 @@ class DBUtils:
         with self.get_db() as db:
             datasets = db.query(Dataset).filter(Dataset.dataset_id.in_(dataset_ids)).all()
             task = Task(
-                task_id=str(uuid4()),
                 model_id=model_id,
                 status=status,
                 datasets=datasets
@@ -557,16 +569,14 @@ if __name__ == "__main__":
                 print("Do you mean to exit? Please type 'exit()' to quit.")
                 break
 
-            resp = db_utils.execute_sql_script(user_input)
+            resp = db_utils.execute_fetch_sql_script(user_input)
+            # db_utils.execute_mutate_sql_script(user_input)
             print(resp)
 
     except KeyboardInterrupt:
         print("\nExiting...")
 
-    # db_utils.execute_sql_script("SELECT * FROM model")  # Example usage
-    # db_utils.execute_sql_script("SELECT * FROM model")  # Example usage
-
-    # # Create models
+    # Create models
     # m1 = db_utils.create_model('model_a')
     # m2 = db_utils.create_model('model_b')
 

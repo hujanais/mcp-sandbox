@@ -28,7 +28,6 @@ from tools.terminal_tool import (
     write_file,
     update_file_content,
 )
-from tools.db_tool import execute_sql
 
 # Define a type-safe context class
 @dataclass
@@ -50,71 +49,44 @@ async def app_lifespan(server: FastMCP) -> AsyncIterator[AppContext]:
 
 # Create the MCP server instance
 mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
-mcp.add_tool(execute_command)
-mcp.add_tool(get_command_history)
-mcp.add_tool(get_current_directory)
-mcp.add_tool(delete_file_content)
-mcp.add_tool(change_directory)
-mcp.add_tool(list_directory)
-mcp.add_tool(write_file)
-mcp.add_tool(read_file)
-mcp.add_tool(insert_file_content)
-mcp.add_tool(update_file_content)
+# mcp.add_tool(execute_command)
+# mcp.add_tool(get_command_history)
+# mcp.add_tool(get_current_directory)
+# mcp.add_tool(delete_file_content)
+# mcp.add_tool(change_directory)
+# mcp.add_tool(list_directory)
+# mcp.add_tool(write_file)
+# mcp.add_tool(read_file)
+# mcp.add_tool(insert_file_content)
+# mcp.add_tool(update_file_content)
+
+# @mcp.tool()
+# def introspect_db(ctx: Context):
+#     """
+#     Retrieve the database schema and useful information about the database.
+#     """
+#     db = ctx.request_context.lifespan_context.db
+#     return db.introspect_schema()
 
 @mcp.tool()
-def introspect_db(ctx: Context):
+def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
     """
-    Retrieve the database schema and useful information about the database.
-    """
-    db = ctx.request_context.lifespan_context.db
-    return db.introspect_schema()
-
-@mcp.tool()
-def execute_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
-    """
-    Execute the SQL script for all database requests.
+    Execute the SQL script for requesting informatiion from the database like SELECT.
     """
     db = ctx.request_context.lifespan_context.db
     print(f"Executing SQL command: {command} with timeout {timeout}")
-    rows = db.execute_sql_script(command)
+    rows = db.execute_fetch_sql_script(command)
     return str(rows)
 
-# @mcp.tool()
-# def create_model(ctx: Context, model_name: str):
-#     """
-#     Create a new model in the database.
-    
-#     Args:
-#         model_name (str): The name of the model to be created.
-        
-#     Returns:
-#         Model: The newly created model object with generated model_id.
-        
-#     Example:
-#         >>> model = create_model("bert-base-uncased")
-#         >>> print(f"Created model: {model.model_id} - {model.model_name}")
-#     """
-#     db = ctx.request_context.lifespan_context.db
-#     newModel = db.create_model(model_name)
-#     return {"model_id": newModel.model_id, "model_name": newModel.model_name}
-
-# @mcp.tool()
-# def get_model(ctx: Context, model_id: Optional[str] = None):
-#     """
-#     Retrieve model(s) from the database.
-    
-#     Args:
-#         model_id (Optional[str]): The specific model ID to retrieve. If None, returns all models.
-        
-#     Returns:
-#         list[Model]: List of Model objects. If model_id is provided, returns a list with one model.
-        
-#     Example:
-#         >>> all_models = get_model()  # Get all models
-#         >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
-#     """
-#     db = ctx.request_context.lifespan_context.db
-#     return [{"model_id": model.model_id, "model_name": model.model_name} for model in db.get_model(model_id)]
+@mcp.tool()
+def execute_mutate_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
+    """
+    Execute the SQL script for mutating the database like INSERT, UPDATE, DELETE.
+    """
+    db = ctx.request_context.lifespan_context.db
+    print(f"Executing SQL command: {command} with timeout {timeout}")
+    resp = db.execute_mutate_sql_script(command)
+    return resp
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse
