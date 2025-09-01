@@ -8,7 +8,8 @@
       "name": "Python Debugger: Current File",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/mcp_terminal/database/db_utils.py",
+      // "program": "${workspaceFolder}/mcp_terminal/database/db_utils.py",
+      "program": "${file}",
       "console": "integratedTerminal"
     }
   ]
