@@ -7,6 +7,8 @@ wheels/
 *.egg-info
 .DS_Store
 
+data/
+
 # Virtual environments
 .venv
 
