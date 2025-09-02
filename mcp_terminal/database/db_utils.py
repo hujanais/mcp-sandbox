@@ -1,79 +1,17 @@
-import asyncio
-
 from collections.abc import Sequence
 from contextlib import contextmanager
-from ctypes import Union
 import json
 from typing import Any, Optional
-from requests import Session
 from sqlalchemy import (
-    Integer, MetaData, create_engine, Column, String, Float, Enum, ForeignKey, Table, text, Row
+    MetaData, Row, create_engine, text
 )
-from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import joinedload
 from dotenv import load_dotenv
-import enum
 import os
 
-# from models import Base, Dataset, Model, Result, Task, TaskStatus
-
-Base = declarative_base()
-
-# Enum for task status
-class TaskStatus(enum.Enum):
-    QUEUED = "QUEUED"
-    RUNNING = "RUNNING"
-    SUCCESS = "SUCCESS"
-    FAILED = "FAILED"
-
-# Association table for many-to-many between Task and Dataset
-task_dataset_association = Table(
-    "task_dataset",
-    Base.metadata,
-    Column("task_id", Integer, ForeignKey("task.task_id", ondelete="CASCADE"), primary_key=True),
-    Column("dataset_id", Integer, ForeignKey("dataset.dataset_id", ondelete="CASCADE"), primary_key=True)
-)
-
-class Model(Base):
-    __tablename__ = "model"
-    model_id = Column(Integer, primary_key=True, autoincrement=True)
-    model_name = Column(String, nullable=False)
-
-    tasks = relationship("Task", back_populates="model", cascade="all, delete")
-
-class Dataset(Base):
-    __tablename__ = "dataset"
-    dataset_id = Column(Integer, primary_key=True, autoincrement=True)
-    dataset_name = Column(String, nullable=False)
-
-    tasks = relationship(
-        "Task",
-        secondary=task_dataset_association,
-        back_populates="datasets"
-    )
-
-class Task(Base):
-    __tablename__ = "task"
-    task_id = Column(Integer, primary_key=True, autoincrement=True)
-    model_id = Column(Integer, ForeignKey("model.model_id", ondelete="CASCADE"), nullable=False)
-    status = Column(Enum(TaskStatus), nullable=False)
-
-    model = relationship("Model", back_populates="tasks")
-    datasets = relationship(
-        "Dataset",
-        secondary=task_dataset_association,
-        back_populates="tasks"
-    )
-    result = relationship("Result", back_populates="task", uselist=False, cascade="all, delete")
-
-class Result(Base):
-    __tablename__ = "result"
-    result_id = Column(Integer, primary_key=True, autoincrement=True)
-    task_id = Column(Integer, ForeignKey("task.task_id", ondelete="CASCADE"), nullable=False)
-    value = Column(Float, nullable=False)
-    category = Column(String, nullable=True)
-
-    task = relationship("Task", back_populates="result")
+from database.models import Base, Dataset, Model, Result, Task, TaskStatus
+from mcp_terminal.database.pydantic_models import PyModel
 
 class DBUtils:
     """
@@ -206,25 +144,30 @@ class DBUtils:
             db.refresh(model)
             return model
 
-    def get_model(self, model_id: Optional[str] = None) -> list[Model]:
+    def get_model(self, model_id: Optional[int] = None) -> list[PyModel]:
         """
         Retrieve model(s) from the database.
         
         Args:
-            model_id (Optional[str]): The specific model ID to retrieve. If None, returns all models.
+            model_id (Optional[int]): The specific model ID to retrieve. If None, returns all models.
             
         Returns:
             list[Model]: List of Model objects. If model_id is provided, returns a list with one model.
             
         Example:
             >>> all_models = get_model()  # Get all models
-            >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
+            >>> specific_model = get_model(512)  # Get specific model
         """
+        db_models = []
         with self.get_db() as db:
             if model_id:
-                return db.query(Model).filter(Model.model_id == model_id)
-            
-            return db.query(Model).all()
+                db_models = db.query(Model).filter(Model.model_id == model_id)
+            else:
+                db_models = db.query(Model).all()
+
+         # Convert to Pydantic models
+        pydantic_models = [PyModel.model_validate(model) for model in db_models]
+        return pydantic_models
 
     def update_model(self, model_id: str, new_name: str) -> Model:
         """
@@ -556,46 +499,46 @@ class DBUtils:
             return False
 
 if __name__ == "__main__":
-    db_utils = DBUtils(reset_db=False)  # Set to True to reset the database
-
-    try:
-        while True:
-            user_input = input("Enter your prompt (or type 'exit()' to quit): ")
-            user_input = user_input.strip()
-            if user_input == "exit()":
-                print("Exiting...")
-                break
-            if 'exit' in user_input:
-                print("Do you mean to exit? Please type 'exit()' to quit.")
-                break
-
-            resp = db_utils.execute_fetch_sql_script(user_input)
-            # db_utils.execute_mutate_sql_script(user_input)
-            print(resp)
-
-    except KeyboardInterrupt:
-        print("\nExiting...")
+    db_utils = DBUtils(reset_db=True)  # Set to True to reset the database
 
     # Create models
-    # m1 = db_utils.create_model('model_a')
-    # m2 = db_utils.create_model('model_b')
+    m1 = db_utils.create_model('model_a')
+    m2 = db_utils.create_model('model_b')
 
-    # # Create datasets
-    # d1 = db_utils.create_dataset('dataset_a')
-    # d2 = db_utils.create_dataset('dataset_b')
-    # d3 = db_utils.create_dataset('dataset_c')
-    # d4 = db_utils.create_dataset('dataset_d')
+    # Create datasets
+    d1 = db_utils.create_dataset('dataset_a')
+    d2 = db_utils.create_dataset('dataset_b')
+    d3 = db_utils.create_dataset('dataset_c')
+    d4 = db_utils.create_dataset('dataset_d')
 
-    # # Create tasks
-    # task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    # task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
-    # task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
+    # Create tasks
+    task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    task2 = db_utils.create_task(m2.model_id, [d1.dataset_id, d2.dataset_id], TaskStatus.SUCCESS)
+    task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id], TaskStatus.RUNNING)
 
-    # # Create Results
-    # db_utils.create_result(task1.task_id, 'dog', 90.9)
-    # db_utils.create_result(task1.task_id, 'cat', 78.9)
-    # db_utils.create_result(task1.task_id, 'bird', 34.9)
+    # Create Results
+    db_utils.create_result(task1.task_id, 'dog', 90.9)
+    db_utils.create_result(task1.task_id, 'cat', 78.9)
+    db_utils.create_result(task1.task_id, 'bird', 34.9)
 
-    # db_utils.create_result(task2.task_id, 'dog', 60.9)
-    # db_utils.create_result(task2.task_id, 'cat', 98.9)
-    # db_utils.create_result(task2.task_id, 'bird', 88.9)
+    db_utils.create_result(task2.task_id, 'dog', 60.9)
+    db_utils.create_result(task2.task_id, 'cat', 98.9)
+    db_utils.create_result(task2.task_id, 'bird', 88.9)
+
+    # try:
+    #     while True:
+    #         user_input = input("Enter your prompt (or type 'exit()' to quit): ")
+    #         user_input = user_input.strip()
+    #         if user_input == "exit()":
+    #             print("Exiting...")
+    #             break
+    #         if 'exit' in user_input:
+    #             print("Do you mean to exit? Please type 'exit()' to quit.")
+    #             break
+
+    #         resp = db_utils.execute_fetch_sql_script(user_input)
+    #         # db_utils.execute_mutate_sql_script(user_input)
+    #         print(resp)
+
+    # except KeyboardInterrupt:
+    #     print("\nExiting...")

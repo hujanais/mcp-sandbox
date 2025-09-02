@@ -2,7 +2,7 @@ from typing import List
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from services.qa_memory import QAMemory, RoleMessage
+from mcp_terminal.services.qa_memory import QAMemory, RoleMessage
 
 load_dotenv()
 

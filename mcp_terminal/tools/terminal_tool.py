@@ -1,12 +1,9 @@
 
 import asyncio
 import os
-import subprocess
 import platform
-import sys
-from typing import List, Dict, Optional
+from typing import Dict, Optional
 from datetime import datetime
-from mcp import Tool
 
 
 # List to store command history

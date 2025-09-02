@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 class PyModel(BaseModel):
-    def __init__(self, model_id: str, model_name: str):
-        model_id: str
-        model_name: str
+    model_id: int
+    model_name: str
+
+    model_config = ConfigDict(from_attributes=True)

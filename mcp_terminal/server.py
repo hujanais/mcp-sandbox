@@ -1,11 +1,10 @@
 from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 from dataclasses import dataclass
-import json
-import sys
-from typing import AsyncIterator, Optional
 
+import sys
 import os
+from typing import Optional
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -15,6 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 # sys.path.append("/database")
 
 from mcp.server.fastmcp import Context, FastMCP
+from database.models import Model
 from database.db_utils import DBUtils
 from tools.terminal_tool import (
     change_directory,
@@ -67,6 +67,24 @@ mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
 #     """
 #     db = ctx.request_context.lifespan_context.db
 #     return db.introspect_schema()
+
+@mcp.tool()
+def get_model(ctx: Context, model_id: Optional[str] = None) -> list[Model]:
+    """
+    Retrieve model(s) from the database.
+    
+    Args:
+        model_id (Optional[str]): The specific model ID to retrieve. If None, returns all models.
+        
+    Returns:
+        list[Model]: List of Model objects. If model_id is provided, returns a list with one model.
+        
+    Example:
+        >>> all_models = get_model()  # Get all models
+        >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    db.get_model(model_id)
 
 @mcp.tool()
 def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
