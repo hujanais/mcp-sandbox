@@ -84,7 +84,24 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[Model]:
         >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
-    db.get_model(model_id)
+    return db.get_model(model_id)
+
+@mcp.tool()
+def create_model(ctx: Context, model_name: str) -> Model:
+    """
+    Create a new model in the database.
+    
+    Args:
+        model_name (str): The name of the model to be created.
+        
+    Returns:
+        Model: The newly created model object with generated model_id.
+        
+    Example:
+        >>> model = create_model("bert-base-uncased")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.create_model(model_name)
 
 @mcp.tool()
 def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:

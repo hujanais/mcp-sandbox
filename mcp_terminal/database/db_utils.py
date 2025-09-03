@@ -142,7 +142,10 @@ class DBUtils:
             db.add(model)
             db.commit()
             db.refresh(model)
-            return model
+
+            # Convert to Pydantic models
+            pydantic_model = PyModel.model_validate(model)
+            return pydantic_model
 
     def get_model(self, model_id: Optional[int] = None) -> list[PyModel]:
         """
@@ -165,39 +168,41 @@ class DBUtils:
             else:
                 db_models = db.query(Model).all()
 
-         # Convert to Pydantic models
+        # Convert to Pydantic models
         pydantic_models = [PyModel.model_validate(model) for model in db_models]
         return pydantic_models
 
-    def update_model(self, model_id: str, new_name: str) -> Model:
+    def update_model(self, model_id: int, new_name: str) -> bool:
         """
         Update the name of an existing model.
         
         Args:
-            model_id (str): The ID of the model to update.
+            model_id (int): The ID of the model to update.
             new_name (str): The new name for the model.
             
         Returns:
-            Model: The updated model object, or None if model not found.
+            bool: True if the model was successfully updated, False if model not found.
             
         Example:
-            >>> updated_model = update_model("123e4567-e89b-12d3-a456-426614174000", "bert-large-uncased")
+            >>> updated_model = update_model(5000, "bert-large-uncased")
             >>> print(f"Updated model name to: {updated_model.model_name}")
         """
         with self.get_db() as db:
-            model = self.get_model(db, model_id)
-            if model:
-                model.model_name = new_name
+            db_model = db.query(Model).filter(Model.model_id == model_id).first()
+            if db_model:
+                db_model.model_name = new_name
                 db.commit()
-                db.refresh(model)
-            return model
+                db.refresh(db_model)
+                return True
 
-    def delete_model(self, model_id: str) -> bool:
+            return False
+        
+    def delete_model(self, model_id: int) -> bool:
         """
         Delete a model from the database.
         
         Args:
-            model_id (str): The ID of the model to delete.
+            model_id (int): The ID of the model to delete.
             
         Returns:
             bool: True if the model was successfully deleted, False if model not found.
@@ -206,17 +211,17 @@ class DBUtils:
             This operation will cascade delete all associated tasks and results.
             
         Example:
-            >>> success = delete_model("123e4567-e89b-12d3-a456-426614174000")
+            >>> success = delete_model(5000)
             >>> print(f"Model deletion: {'Success' if success else 'Failed'}")
         """
         with self.get_db() as db:
-            model = self.get_model(model_id)
-            if model:
-                db.delete(model)
+            db_model = db.query(Model).filter(Model.model_id == model_id).first()
+            if db_model:
+                db.delete(db_model)
                 db.commit()
                 return True
-            return False
 
+            return False
     # --- DATASET CRUD ---
     def create_dataset(self, dataset_name: str) -> Dataset:
         """
@@ -251,7 +256,7 @@ class DBUtils:
             
         Example:
             >>> all_datasets = get_dataset()  # Get all datasets
-            >>> specific_dataset = get_dataset("123e4567-e89b-12d3-a456-426614174000")  # Get specific dataset
+            >>> specific_dataset = get_dataset(5000)  # Get specific dataset
         """
         with self.get_db() as db:
             if dataset_id:
@@ -271,7 +276,7 @@ class DBUtils:
             Dataset: The updated dataset object, or None if dataset not found.
             
         Example:
-            >>> updated_dataset = update_dataset("123e4567-e89b-12d3-a456-426614174000", "imagenet-21k")
+            >>> updated_dataset = update_dataset(5000, "imagenet-21k")
             >>> print(f"Updated dataset name to: {updated_dataset.dataset_name}")
         """
         with self.get_db() as db:
@@ -296,7 +301,7 @@ class DBUtils:
             This operation will remove the dataset from all associated tasks.
             
         Example:
-            >>> success = delete_dataset("123e4567-e89b-12d3-a456-426614174000")
+            >>> success = delete_dataset(5000)
             >>> print(f"Dataset deletion: {'Success' if success else 'Failed'}")
         """
         with self.get_db() as db:
@@ -308,12 +313,12 @@ class DBUtils:
             return False
 
     # --- TASK CRUD ---
-    def create_task(self, model_id: str, dataset_ids: list[str], status: TaskStatus) -> Task:
+    def create_task(self, model_id: int, dataset_ids: list[str], status: TaskStatus) -> Task:
         """
         Create a new task in the database.
         
         Args:
-            model_id (str): The ID of the model to use for this task.
+            model_id (int): The ID of the model to use for this task.
             dataset_ids (list[str]): List of dataset IDs to associate with this task.
             status (TaskStatus): The initial status of the task (QUEUED, RUNNING, SUCCESS, FAILED).
             
@@ -348,7 +353,7 @@ class DBUtils:
             
         Example:
             >>> all_tasks = get_task()  # Get all tasks with relationships
-            >>> specific_task = get_task("123e4567-e89b-12d3-a456-426614174000")  # Get specific task
+            >>> specific_task = get_task(5000)  # Get specific task
             >>> print(f"Task {specific_task.task_id} uses model: {specific_task.model.model_name}")
         """
         with self.get_db() as db:
@@ -373,7 +378,7 @@ class DBUtils:
             Task: The updated task object, or None if task not found.
             
         Example:
-            >>> updated_task = update_task_status("123e4567-e89b-12d3-a456-426614174000", TaskStatus.SUCCESS)
+            >>> updated_task = update_task_status(5000, TaskStatus.SUCCESS)
             >>> print(f"Task status updated to: {updated_task.status.value}")
         """
         with self.get_db() as db:
@@ -398,7 +403,7 @@ class DBUtils:
             This operation will cascade delete all associated results.
             
         Example:
-            >>> success = delete_task("123e4567-e89b-12d3-a456-426614174000")
+            >>> success = delete_task(5000)
             >>> print(f"Task deletion: {'Success' if success else 'Failed'}")
         """
         with self.get_db() as db:
@@ -445,7 +450,7 @@ class DBUtils:
             
         Example:
             >>> all_results = get_result()  # Get all results
-            >>> specific_result = get_result("123e4567-e89b-12d3-a456-426614174000")  # Get specific result
+            >>> specific_result = get_result(5000)  # Get specific result
         """
         with self.get_db() as db:
             if result_id:
@@ -465,7 +470,7 @@ class DBUtils:
             Result: The updated result object, or None if result not found.
             
         Example:
-            >>> updated_result = update_result_value("123e4567-e89b-12d3-a456-426614174000", 98.7)
+            >>> updated_result = update_result_value(5000, 98.7)
             >>> print(f"Result value updated to: {updated_result.value}")
         """
         with self.get_db() as db:
@@ -487,7 +492,7 @@ class DBUtils:
             bool: True if the result was successfully deleted, False if result not found.
             
         Example:
-            >>> success = delete_result("123e4567-e89b-12d3-a456-426614174000")
+            >>> success = delete_result(5000)
             >>> print(f"Result deletion: {'Success' if success else 'Failed'}")
         """
         with self.get_db() as db:
