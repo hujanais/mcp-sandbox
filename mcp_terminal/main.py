@@ -2,10 +2,11 @@ import json
 import os
 import sys
 
-module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "mcp_terminal"))
+module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(module_path)
 
-from mcp_terminal.database.db_utils import DBUtils  # noqa: E402
+from database.db_utils import DBUtils  # noqa: E402
+from database.pydantic_models import PyModel
 
 if __name__ == "__main__":
     try:

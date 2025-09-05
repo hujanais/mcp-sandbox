@@ -6,16 +6,13 @@ import sys
 import os
 from typing import Optional
 
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-
-# sys.path.append("/mcp_terminal/database")  # Replace with the actual path
-# sys.path.append("/tools") # Replace with the actual path
-# sys.path.append("/database")
-
 from mcp.server.fastmcp import Context, FastMCP
-from database.models import Model
 from database.db_utils import DBUtils
+from database.pydantic_models import PyModel
+from database.models import Model
 from tools.terminal_tool import (
     change_directory,
     delete_file_content,
@@ -69,7 +66,7 @@ mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
 #     return db.introspect_schema()
 
 @mcp.tool()
-def get_model(ctx: Context, model_id: Optional[str] = None) -> list[Model]:
+def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
     """
     Retrieve model(s) from the database.
     
@@ -86,104 +83,144 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[Model]:
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.get_model(model_id)
 
-@mcp.tool()
-def create_model(ctx: Context, model_name: str) -> Model:
-    """
-    Create a new model in the database.
+# @mcp.tool()
+# def create_model(ctx: Context, model_name: str) -> Model:
+#     """
+#     Create a new model in the database.
     
-    Args:
-        model_name (str): The name of the model to be created.
+#     Args:
+#         model_name (str): The name of the model to be created.
         
-    Returns:
-        Model: The newly created model object with generated model_id.
+#     Returns:
+#         Model: The newly created model object with generated model_id.
         
-    Example:
-        >>> model = create_model("bert-base-uncased")
-    """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.create_model(model_name)
+#     Example:
+#         >>> model = create_model("bert-base-uncased")
+#     """
+#     db: DBUtils = ctx.request_context.lifespan_context.db
+#     return db.create_model(model_name)
 
-@mcp.tool()
-def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
-    """
-    Execute a SQL script to fetch information from the database.
+# @mcp.tool()
+# def delete_model(ctx: Context, model_id: str) -> bool:
+#     """
+#     Delete a model from the database.
+    
+#     Args:
+#         model_id (int): The ID of the model to delete.
+        
+#     Returns:
+#         bool: True if the model was successfully deleted, False if model not found.
+        
+#     Note:
+#         This operation will cascade delete all associated tasks and results.
+        
+#     Example:
+#         >>> success = delete_model(5000)
+#         >>> print(f"Model deletion: {'Success' if success else 'Failed'}")
+#     """
+#     db: DBUtils = ctx.request_context.lifespan_context.db
+#     return db.delete_model(model_id)
 
-    This function is designed to execute SQL commands that retrieve data, such as 
-    SELECT statements. It interacts with the database configured in the current 
-    context and returns the result as a string representation.
+# @mcp.tool()
+# def update_model(ctx: Context, model_id: str, model_name: str) -> bool:
+#     """
+#     Update the name of an existing model.
+    
+#     Args:
+#         model_id (int): The ID of the model to update.
+#         new_name (str): The new name for the model.
+        
+#     Returns:
+#         bool: True if the model was successfully updated, False if model not found.
+        
+#     Example:
+#         >>> updated_model = update_model(5000, "bert-large-uncased")
+#         >>> print(f"Updated model name to: {updated_model.model_name}")
+#     """
+#     db: DBUtils = ctx.request_context.lifespan_context.db
+#     return db.update_model(model_id, model_name)
 
-    Parameters:
-        ctx (Context): The context object that contains the request-specific 
-                       information, including the database connection.
-        command (str): The SQL command to be executed for fetching data. 
-                       It should be a valid SQL SELECT statement.
-        timeout (int, optional): The maximum time in seconds to wait for the 
-                                 SQL command to execute. The default is 30 seconds.
+# @mcp.tool()
+# def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
+#     """
+#     Execute a SQL script to fetch information from the database.
 
-    Returns:
-        str: A string representation of the rows retrieved from the database. 
-             If no rows are found, it may return an empty string.
+#     This function is designed to execute SQL commands that retrieve data, such as 
+#     SELECT statements. It interacts with the database configured in the current 
+#     context and returns the result as a string representation.
 
-    Raises:
-        Exception: Raises any exceptions that occur during SQL execution, 
-                   such as syntax errors or connection issues.
+#     Parameters:
+#         ctx (Context): The context object that contains the request-specific 
+#                        information, including the database connection.
+#         command (str): The SQL command to be executed for fetching data. 
+#                        It should be a valid SQL SELECT statement.
+#         timeout (int, optional): The maximum time in seconds to wait for the 
+#                                  SQL command to execute. The default is 30 seconds.
 
-    Example:
-        >>> result = execute_fetch_sql_tool(ctx, "SELECT * FROM users;")
-        >>> print(result)  # Outputs the fetched rows as a string.
+#     Returns:
+#         str: A string representation of the rows retrieved from the database. 
+#              If no rows are found, it may return an empty string.
 
-    Notes:
-        - Ensure that the provided SQL command is safe and properly sanitized 
-          to prevent SQL injection attacks.
-        - The timeout parameter can be adjusted based on the expected duration 
-          of the SQL operation.
-    """
-    db = ctx.request_context.lifespan_context.db
-    print(f"Executing SQL command: {command} with timeout {timeout}")
-    rows = db.execute_fetch_sql_script(command)
-    return str(rows)
+#     Raises:
+#         Exception: Raises any exceptions that occur during SQL execution, 
+#                    such as syntax errors or connection issues.
 
-@mcp.tool()
-def execute_mutate_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
-    """
-    Execute a SQL script to mutate the database.
+#     Example:
+#         >>> result = execute_fetch_sql_tool(ctx, "SELECT * FROM users;")
+#         >>> print(result)  # Outputs the fetched rows as a string.
 
-    This function is intended for executing SQL commands that modify data in 
-    the database, such as INSERT, UPDATE, or DELETE statements. It utilizes 
-    the database connection available in the current context and returns a 
-    response indicating the result of the operation.
+#     Notes:
+#         - Ensure that the provided SQL command is safe and properly sanitized 
+#           to prevent SQL injection attacks.
+#         - The timeout parameter can be adjusted based on the expected duration 
+#           of the SQL operation.
+#     """
+#     db = ctx.request_context.lifespan_context.db
+#     print(f"Executing SQL command: {command} with timeout {timeout}")
+#     rows = db.execute_fetch_sql_script(command)
+#     return str(rows)
 
-    Parameters:
-        ctx (Context): The context object that holds request-specific information, 
-                       including the database connection.
-        command (str): The SQL command to be executed for mutating data. 
-                       It should be a valid SQL INSERT, UPDATE, or DELETE statement.
-        timeout (int, optional): The maximum time in seconds to wait for the 
-                                 SQL command to execute. The default is 30 seconds.
+# @mcp.tool()
+# def execute_mutate_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
+#     """
+#     Execute a SQL script to mutate the database.
 
-    Returns:
-        str: A response message indicating the success or failure of the 
-             mutation operation, which may include the number of affected rows.
+#     This function is intended for executing SQL commands that modify data in 
+#     the database, such as INSERT, UPDATE, or DELETE statements. It utilizes 
+#     the database connection available in the current context and returns a 
+#     response indicating the result of the operation.
 
-    Raises:
-        Exception: Raises any exceptions encountered during SQL execution, 
-                   which may include syntax errors, constraint violations, 
-                   or connection errors.
+#     Parameters:
+#         ctx (Context): The context object that holds request-specific information, 
+#                        including the database connection.
+#         command (str): The SQL command to be executed for mutating data. 
+#                        It should be a valid SQL INSERT, UPDATE, or DELETE statement.
+#         timeout (int, optional): The maximum time in seconds to wait for the 
+#                                  SQL command to execute. The default is 30 seconds.
 
-    Example:
-        >>> response = execute_mutate_sql_tool(ctx, "INSERT INTO users (name) VALUES ('John Doe');")
-        >>> print(response)  # Outputs a success message or the number of rows affected.
+#     Returns:
+#         str: A response message indicating the success or failure of the 
+#              mutation operation, which may include the number of affected rows.
 
-    Notes:
-        - Ensure that the provided SQL command is safe and properly validated 
-          to avoid SQL injection vulnerabilities.
-        - The timeout parameter can be adjusted depending on the complexity 
-          of the transaction.
-    """
-    db = ctx.request_context.lifespan_context.db
-    print(f"Executing SQL command: {command} with timeout {timeout}")
-    resp = db.execute_mutate_sql_script(command)
-    return resp
+#     Raises:
+#         Exception: Raises any exceptions encountered during SQL execution, 
+#                    which may include syntax errors, constraint violations, 
+#                    or connection errors.
+
+#     Example:
+#         >>> response = execute_mutate_sql_tool(ctx, "INSERT INTO users (name) VALUES ('John Doe');")
+#         >>> print(response)  # Outputs a success message or the number of rows affected.
+
+#     Notes:
+#         - Ensure that the provided SQL command is safe and properly validated 
+#           to avoid SQL injection vulnerabilities.
+#         - The timeout parameter can be adjusted depending on the complexity 
+#           of the transaction.
+#     """
+#     db = ctx.request_context.lifespan_context.db
+#     print(f"Executing SQL command: {command} with timeout {timeout}")
+#     resp = db.execute_mutate_sql_script(command)
+#     return resp
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse
