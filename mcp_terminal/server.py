@@ -83,62 +83,61 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.get_model(model_id)
 
-# @mcp.tool()
-# def create_model(ctx: Context, model_name: str) -> Model:
-#     """
-#     Create a new model in the database.
+@mcp.tool()
+def create_model(ctx: Context, model_name: str) -> PyModel:
+    """
+    Create a new model in the database.
     
-#     Args:
-#         model_name (str): The name of the model to be created.
+    Args:
+        model_name (str): The name of the model to be created.
         
-#     Returns:
-#         Model: The newly created model object with generated model_id.
+    Returns:
+        Model: The newly created model object with generated model_id.
         
-#     Example:
-#         >>> model = create_model("bert-base-uncased")
-#     """
-#     db: DBUtils = ctx.request_context.lifespan_context.db
-#     return db.create_model(model_name)
+    Example:
+        >>> model = create_model("bert-base-uncased")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.create_model(model_name)
 
-# @mcp.tool()
-# def delete_model(ctx: Context, model_id: str) -> bool:
-#     """
-#     Delete a model from the database.
+@mcp.tool()
+def delete_model(ctx: Context, model_id: str) -> bool:
+    """
+    Delete a model from the database.
     
-#     Args:
-#         model_id (int): The ID of the model to delete.
+    Args:
+        model_id (int): The ID of the model to delete.
         
-#     Returns:
-#         bool: True if the model was successfully deleted, False if model not found.
+    Returns:
+        bool: True if the model was successfully deleted, False if model not found.
         
-#     Note:
-#         This operation will cascade delete all associated tasks and results.
+    Note:
+        This operation will cascade delete all associated tasks and results.
         
-#     Example:
-#         >>> success = delete_model(5000)
-#         >>> print(f"Model deletion: {'Success' if success else 'Failed'}")
-#     """
-#     db: DBUtils = ctx.request_context.lifespan_context.db
-#     return db.delete_model(model_id)
+    Example:
+        >>> success = delete_model(5000)
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.delete_model(model_id)
 
-# @mcp.tool()
-# def update_model(ctx: Context, model_id: str, model_name: str) -> bool:
-#     """
-#     Update the name of an existing model.
+@mcp.tool()
+def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
+    """
+    Update the name of an existing model.
     
-#     Args:
-#         model_id (int): The ID of the model to update.
-#         new_name (str): The new name for the model.
+    Args:
+        model_id (int): The ID of the model to update.
+        new_name (str): The new name for the model.
         
-#     Returns:
-#         bool: True if the model was successfully updated, False if model not found.
+    Returns:
+        bool: True if the model was successfully updated, False if model not found.
         
-#     Example:
-#         >>> updated_model = update_model(5000, "bert-large-uncased")
-#         >>> print(f"Updated model name to: {updated_model.model_name}")
-#     """
-#     db: DBUtils = ctx.request_context.lifespan_context.db
-#     return db.update_model(model_id, model_name)
+    Example:
+        >>> updated_model = update_model(5000, "bert-large-uncased")
+        >>> print(f"Updated model name to: {updated_model.model_name}")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.update_model(model_id, model_name)
 
 # @mcp.tool()
 # def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:

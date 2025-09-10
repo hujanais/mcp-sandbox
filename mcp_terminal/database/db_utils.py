@@ -123,7 +123,7 @@ class DBUtils:
                 return None
 
     # --- MODEL CRUD ---
-    def create_model(self, model_name: str) -> Model:
+    def create_model(self, model_name: str) -> PyModel:
         """
         Create a new model in the database.
         
@@ -172,7 +172,7 @@ class DBUtils:
         pydantic_models = [PyModel.model_validate(model) for model in db_models]
         return pydantic_models
 
-    def update_model(self, model_id: int, new_name: str) -> bool:
+    def update_model(self, model_id: int, new_name: str) -> PyModel:
         """
         Update the name of an existing model.
         
@@ -181,11 +181,10 @@ class DBUtils:
             new_name (str): The new name for the model.
             
         Returns:
-            bool: True if the model was successfully updated, False if model not found.
+            Model: The updated model object.
             
         Example:
             >>> updated_model = update_model(5000, "bert-large-uncased")
-            >>> print(f"Updated model name to: {updated_model.model_name}")
         """
         with self.get_db() as db:
             db_model = db.query(Model).filter(Model.model_id == model_id).first()
@@ -193,9 +192,12 @@ class DBUtils:
                 db_model.model_name = new_name
                 db.commit()
                 db.refresh(db_model)
-                return True
 
-            return False
+                # Convert to Pydantic models
+                pydantic_model = PyModel.model_validate(db_model)
+                return pydantic_model
+            
+            return 'model not found'
         
     def delete_model(self, model_id: int) -> bool:
         """
