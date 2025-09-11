@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import os
 
 from database.models import Base, Dataset, Model, Result, Task, TaskStatus
-from mcp_terminal.database.pydantic_models import PyModel
+from mcp_terminal.database.pydantic_models import PyModel, PyResponse
 
 class DBUtils:
     """
@@ -123,7 +123,7 @@ class DBUtils:
                 return None
 
     # --- MODEL CRUD ---
-    def create_model(self, model_name: str) -> PyModel:
+    def create_model(self, model_name: str) -> PyResponse[PyModel]:
         """
         Create a new model in the database.
         
@@ -131,11 +131,11 @@ class DBUtils:
             model_name (str): The name of the model to be created.
             
         Returns:
-            Model: The newly created model object with generated model_id.
+            PyResponse[Model]: A response object containing the created Model object.
             
         Example:
-            >>> model = create_model("bert-base-uncased")
-            >>> print(f"Created model: {model.model_id} - {model.model_name}")
+            >>> response = create_model("bert-base-uncased")
+            >>> print({"status": response.status, "message": response.message, "data": response.data})
         """
         with self.get_db() as db:
             model = Model(model_name=model_name)
@@ -145,7 +145,7 @@ class DBUtils:
 
             # Convert to Pydantic models
             pydantic_model = PyModel.model_validate(model)
-            return pydantic_model
+            return PyResponse(status=True, message="Model created successfully", data=pydantic_model)
 
     def get_model(self, model_id: Optional[int] = None) -> list[PyModel]:
         """
@@ -172,7 +172,7 @@ class DBUtils:
         pydantic_models = [PyModel.model_validate(model) for model in db_models]
         return pydantic_models
 
-    def update_model(self, model_id: int, new_name: str) -> PyModel:
+    def update_model(self, model_id: int, new_name: str) -> PyResponse[PyModel]:
         """
         Update the name of an existing model.
         
@@ -195,11 +195,11 @@ class DBUtils:
 
                 # Convert to Pydantic models
                 pydantic_model = PyModel.model_validate(db_model)
-                return pydantic_model
+                return PyResponse(status=True, message="Model updated successfully", data=pydantic_model)
             
-            return 'model not found'
+            return PyResponse(status=False, message="Model not found", data=None)
         
-    def delete_model(self, model_id: int) -> bool:
+    def delete_model(self, model_id: int) -> PyResponse:
         """
         Delete a model from the database.
         
@@ -221,9 +221,9 @@ class DBUtils:
             if db_model:
                 db.delete(db_model)
                 db.commit()
-                return True
+                return PyResponse(status=True, message="Model deleted successfully", data=None)
 
-            return False
+            return PyResponse(status=False, message="Model not found", data=None)
         
     # --- DATASET CRUD ---
     def create_dataset(self, dataset_name: str) -> Dataset:

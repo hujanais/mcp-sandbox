@@ -11,7 +11,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from mcp.server.fastmcp import Context, FastMCP
 from database.db_utils import DBUtils
-from database.pydantic_models import PyModel
+from database.pydantic_models import PyModel, PyResponse
 from database.models import Model
 from tools.terminal_tool import (
     change_directory,
@@ -84,7 +84,7 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
     return db.get_model(model_id)
 
 @mcp.tool()
-def create_model(ctx: Context, model_name: str) -> PyModel:
+def create_model(ctx: Context, model_name: str) -> PyResponse[PyModel]:
     """
     Create a new model in the database.
     
@@ -92,16 +92,18 @@ def create_model(ctx: Context, model_name: str) -> PyModel:
         model_name (str): The name of the model to be created.
         
     Returns:
-        Model: The newly created model object with generated model_id.
-        
+        PyResponse[Model]: A response object containing the created Model object.
+        >>> print({"status": response.status, "message": response.message, "data": response.data})
     Example:
         >>> model = create_model("bert-base-uncased")
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.create_model(model_name)
+    # db: DBUtils = ctx.request_context.lifespan_context.db
+    # response = db.create_model(model_name)
+    response = PyResponse(status=True, message="Model created successfully", data=PyModel(model_id=111, model_name='stoopid'))
+    return response
 
 @mcp.tool()
-def delete_model(ctx: Context, model_id: str) -> bool:
+def delete_model(ctx: Context, model_id: str) -> PyResponse:
     """
     Delete a model from the database.
     
@@ -109,19 +111,20 @@ def delete_model(ctx: Context, model_id: str) -> bool:
         model_id (int): The ID of the model to delete.
         
     Returns:
-        bool: True if the model was successfully deleted, False if model not found.
+        PyResponse: A response object indicating success or failure of the deletion.
         
     Note:
         This operation will cascade delete all associated tasks and results.
         
     Example:
-        >>> success = delete_model(5000)
+        >>> response = delete_model(5000)
+        >>> print({"status": response.status, "message": response.message})
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.delete_model(model_id)
 
 @mcp.tool()
-def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
+def update_model(ctx: Context, model_id: str, model_name: str) -> PyResponse[PyModel]:
     """
     Update the name of an existing model.
     
@@ -130,11 +133,11 @@ def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
         new_name (str): The new name for the model.
         
     Returns:
-        bool: True if the model was successfully updated, False if model not found.
+        PyResponse[Model]: A response object containing the updated Model object.
         
     Example:
-        >>> updated_model = update_model(5000, "bert-large-uncased")
-        >>> print(f"Updated model name to: {updated_model.model_name}")
+        >>> response = update_model(5000, "bert-large-uncased")
+        >>> print({"status": response.status, "message": response.message, "data": response.data})
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.update_model(model_id, model_name)

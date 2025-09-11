@@ -15,7 +15,7 @@ if __name__ == "__main__":
         # Create a new model
         print('----- Create a new model -----')
         new_model = db_utils.create_model("bert-base-uncased")
-        model_id = new_model.model_id
+        model_id = new_model.data.model_id
         
         models = db_utils.get_model(model_id)
         for model in models:
@@ -30,7 +30,7 @@ if __name__ == "__main__":
             print(json.dumps(model.__dict__, indent=4))
 
         print('----- Delete the new model -----')
-        db_utils.delete_model(new_model.model_id)
+        db_utils.delete_model(model_id)
         
         models = db_utils.get_model(None)
         for model in models:
