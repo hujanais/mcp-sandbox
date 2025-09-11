@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import os
 
 from database.models import Base, Dataset, Model, Result, Task, TaskStatus
-from mcp_terminal.database.pydantic_models import PyModel, PyResponse
+from mcp_terminal.database.pydantic_models import PyModel, PyDataset, PyTask
 
 class DBUtils:
     """
@@ -25,7 +25,7 @@ class DBUtils:
         Initialize the database utility class.
         Loads environment variables for database connection parameters.
         """
-        # Load environment variables from .env file
+    # Load environment variables from .env file
         load_dotenv()
 
         self.DB_USER = os.getenv("DB_USER")
@@ -123,7 +123,7 @@ class DBUtils:
                 return None
 
     # --- MODEL CRUD ---
-    def create_model(self, model_name: str) -> PyResponse[PyModel]:
+    def create_model(self, model_name: str) -> PyModel:
         """
         Create a new model in the database.
         
@@ -131,22 +131,28 @@ class DBUtils:
             model_name (str): The name of the model to be created.
             
         Returns:
-            PyResponse[Model]: A response object containing the created Model object.
-            
+            PyModel: A PyModel object representing the created model or error message
+                    
         Example:
             >>> response = create_model("bert-base-uncased")
             >>> print({"status": response.status, "message": response.message, "data": response.data})
         """
-        with self.get_db() as db:
-            model = Model(model_name=model_name)
-            db.add(model)
-            db.commit()
-            db.refresh(model)
+        try:
+            with self.get_db() as db:
+                model = Model(model_name=model_name)
+                db.add(model)
+                db.commit()
+                db.refresh(model)
 
-            # Convert to Pydantic models
-            pydantic_model = PyModel.model_validate(model)
-            return PyResponse(status=True, message="Model created successfully", data=pydantic_model)
+                # Convert to Pydantic models
+                pydantic_model = PyModel.model_validate(model)
+                return pydantic_model
+        except Exception as e:
+            print (f"Error creating model: {str(e)}")
 
+# Error executing tool create_model: 1 validation error for PyModel
+#   Input should be a valid dictionary or instance of PyModel [type=model_type, input_value=<database.models.Model object at 0x109fe0110>, input_type=Model]
+#     For further information visit https://errors.pydantic.dev/2.11/v/model_type
     def get_model(self, model_id: Optional[int] = None) -> list[PyModel]:
         """
         Retrieve model(s) from the database.
@@ -172,7 +178,7 @@ class DBUtils:
         pydantic_models = [PyModel.model_validate(model) for model in db_models]
         return pydantic_models
 
-    def update_model(self, model_id: int, new_name: str) -> PyResponse[PyModel]:
+    def update_model(self, model_id: int, new_name: str) -> PyModel:
         """
         Update the name of an existing model.
         
@@ -181,7 +187,7 @@ class DBUtils:
             new_name (str): The new name for the model.
             
         Returns:
-            Model: The updated model object.
+            PyModel: The updated model object or error
             
         Example:
             >>> updated_model = update_model(5000, "bert-large-uncased")
@@ -195,11 +201,11 @@ class DBUtils:
 
                 # Convert to Pydantic models
                 pydantic_model = PyModel.model_validate(db_model)
-                return PyResponse(status=True, message="Model updated successfully", data=pydantic_model)
-            
-            return PyResponse(status=False, message="Model not found", data=None)
+                return pydantic_model
+
+            return 'Model not found'
         
-    def delete_model(self, model_id: int) -> PyResponse:
+    def delete_model(self, model_id: int) -> str:
         """
         Delete a model from the database.
         
@@ -207,7 +213,7 @@ class DBUtils:
             model_id (int): The ID of the model to delete.
             
         Returns:
-            bool: True if the model was successfully deleted, False if model not found.
+            str: successs or error message
             
         Note:
             This operation will cascade delete all associated tasks and results.
@@ -216,15 +222,19 @@ class DBUtils:
             >>> success = delete_model(5000)
             >>> print(f"Model deletion: {'Success' if success else 'Failed'}")
         """
-        with self.get_db() as db:
-            db_model = db.query(Model).filter(Model.model_id == model_id).first()
-            if db_model:
-                db.delete(db_model)
-                db.commit()
-                return PyResponse(status=True, message="Model deleted successfully", data=None)
+        try:
+            with self.get_db() as db:
+                db_model = db.query(Model).filter(Model.model_id == model_id).first()
+                if db_model is None:
+                    raise ValueError(f"Model with ID {model_id} not found.")
 
-            return PyResponse(status=False, message="Model not found", data=None)
-        
+                if db_model:
+                    db.delete(db_model)
+                    db.commit()
+                    return "Model has been deleted"
+        except Exception as e:
+            return (f"Error deleting model: {str(e)}")
+
     # --- DATASET CRUD ---
     def create_dataset(self, dataset_name: str) -> Dataset:
         """
@@ -316,7 +326,7 @@ class DBUtils:
             return False
 
     # --- TASK CRUD ---
-    def create_task(self, model_id: int, dataset_ids: list[str], status: TaskStatus) -> Task:
+    def create_task(self, model_id: int, dataset_ids: list[str]) -> PyTask | str:
         """
         Create a new task in the database.
         
@@ -327,22 +337,27 @@ class DBUtils:
             
         Returns:
             Task: The newly created task object with generated task_id and associated datasets.
+            str: Error message if task creation fails.
             
         Example:
             >>> task = create_task("model-123", ["dataset-1", "dataset-2"], TaskStatus.QUEUED)
             >>> print(f"Created task: {task.task_id} with {len(task.datasets)} datasets")
         """
-        with self.get_db() as db:
-            datasets = db.query(Dataset).filter(Dataset.dataset_id.in_(dataset_ids)).all()
-            task = Task(
-                model_id=model_id,
-                status=status,
-                datasets=datasets
-            )
-            db.add(task)
-            db.commit()
-            db.refresh(task)
-            return task
+        try:
+            with self.get_db() as db:
+                datasets = db.query(Dataset).filter(Dataset.dataset_id.in_(dataset_ids)).all()
+                task = Task(
+                    model_id=model_id,
+                    status=TaskStatus.QUEUED,
+                    datasets=datasets
+                )
+                db.add(task)
+                db.commit()
+                db.refresh(task)
+
+                return PyTask.model_validate(task)
+        except Exception as e:
+            return f"Error creating task: {e}"
 
     def get_task(self, task_id: Optional[str] = None) -> list[Task]:
         """
@@ -359,17 +374,25 @@ class DBUtils:
             >>> specific_task = get_task(5000)  # Get specific task
             >>> print(f"Task {specific_task.task_id} uses model: {specific_task.model.model_name}")
         """
-        with self.get_db() as db:
-            query = db.query(Task).options(
-                joinedload(Task.model),
-                joinedload(Task.datasets)
-            )
-            if task_id:
-                return query.filter(Task.task_id == task_id)
+        db_tasks: list[Task] = []
+        try:
+            with self.get_db() as db:
+                query = db.query(Task).options(
+                    joinedload(Task.model),
+                    joinedload(Task.datasets)
+                )
+                if task_id:
+                    db_tasks = query.filter(Task.task_id == task_id)
+                else:
+                    db_tasks = query.all()
 
-            return query.all()
+            # Convert to Pydantic models
+            pydantic_models = [PyTask.model_validate(task) for task in db_tasks]
+            return pydantic_models
+        except Exception as e:
+            return f"Error retrieving tasks: {e}"
 
-    def update_task_status(self, task_id: str, new_status: TaskStatus) -> Task:
+    def update_task_status(self, task_id: str, new_status: TaskStatus) -> PyTask | str:
         """
         Update the status of an existing task.
         
@@ -379,20 +402,26 @@ class DBUtils:
             
         Returns:
             Task: The updated task object, or None if task not found.
-            
+                        
         Example:
             >>> updated_task = update_task_status(5000, TaskStatus.SUCCESS)
             >>> print(f"Task status updated to: {updated_task.status.value}")
         """
-        with self.get_db() as db:
-            task = self.get_task(task_id)
-            if task:
-                task.status = new_status
-                db.commit()
-                db.refresh(task)
-            return task
+        try:
+            with self.get_db() as db:
+                task = self.get_task(task_id)
+                if task:
+                    task.status = new_status
+                    db.commit()
+                    db.refresh(task)
 
-    def delete_task(self, task_id: str) -> bool:
+                    return PyTask.model_validate(task)
+                else:
+                    raise ValueError(f"Task with ID {task_id} not found")
+        except Exception as e:
+            print (f"Error updating task status: {e}")
+
+    def delete_task(self, task_id: str) -> str:
         """
         Delete a task from the database.
         
@@ -409,13 +438,17 @@ class DBUtils:
             >>> success = delete_task(5000)
             >>> print(f"Task deletion: {'Success' if success else 'Failed'}")
         """
-        with self.get_db() as db:
-            task = self.get_task(task_id)
-            if task:
-                db.delete(task)
-                db.commit()
-                return True
-            return False
+        try:
+            with self.get_db() as db:
+                task = self.get_task(task_id)
+                if task:
+                    db.delete(task)
+                    db.commit()
+                    return "Task deleted successfully"
+                else:
+                    raise ValueError(f"Task with ID {task_id} not found")
+        except Exception as e:
+            print (f"Error deleting task: {e}")
 
     # --- RESULT CRUD ---
     def create_result(self, task_id: str, category: str, value: float) -> Result:
@@ -434,12 +467,15 @@ class DBUtils:
             >>> result = create_result("task-123", "dog", 95.5)
             >>> print(f"Created result: {result.result_id} - {result.category}: {result.value}")
         """
-        with self.get_db() as db:
-            result = Result(task_id=task_id, category=category, value=value)
-            db.add(result)
-            db.commit()
-            db.refresh(result)
-            return result
+        try:
+            with self.get_db() as db:
+                result = Result(task_id=task_id, category=category, value=value)
+                db.add(result)
+                db.commit()
+                db.refresh(result)
+                return result
+        except Exception as e:
+            print (f"Error creating result: {str(e)}")
 
     def get_result(self, result_id: Optional[str] = None) -> list[Result]:
         """

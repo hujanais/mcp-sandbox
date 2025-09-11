@@ -6,13 +6,14 @@ import sys
 import os
 from typing import Optional
 
+from database.models import TaskStatus
+
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from mcp.server.fastmcp import Context, FastMCP
 from database.db_utils import DBUtils
-from database.pydantic_models import PyModel, PyResponse
-from database.models import Model
+from database.pydantic_models import PyModel, PyTask
 from tools.terminal_tool import (
     change_directory,
     delete_file_content,
@@ -84,7 +85,7 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
     return db.get_model(model_id)
 
 @mcp.tool()
-def create_model(ctx: Context, model_name: str) -> PyResponse[PyModel]:
+def create_model(ctx: Context, model_name: str) -> PyModel:
     """
     Create a new model in the database.
     
@@ -97,13 +98,12 @@ def create_model(ctx: Context, model_name: str) -> PyResponse[PyModel]:
     Example:
         >>> model = create_model("bert-base-uncased")
     """
-    # db: DBUtils = ctx.request_context.lifespan_context.db
-    # response = db.create_model(model_name)
-    response = PyResponse(status=True, message="Model created successfully", data=PyModel(model_id=111, model_name='stoopid'))
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    response = db.create_model(model_name)
     return response
 
 @mcp.tool()
-def delete_model(ctx: Context, model_id: str) -> PyResponse:
+def delete_model(ctx: Context, model_id: str) -> str:
     """
     Delete a model from the database.
     
@@ -124,7 +124,7 @@ def delete_model(ctx: Context, model_id: str) -> PyResponse:
     return db.delete_model(model_id)
 
 @mcp.tool()
-def update_model(ctx: Context, model_id: str, model_name: str) -> PyResponse[PyModel]:
+def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
     """
     Update the name of an existing model.
     
@@ -141,6 +141,85 @@ def update_model(ctx: Context, model_id: str, model_name: str) -> PyResponse[PyM
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.update_model(model_id, model_name)
+
+@mcp.tool()
+def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
+    """
+    Retrieve task(s) from the database.
+    
+    Args:
+        task_id (Optional[str]): The specific task ID to retrieve. If None, returns all tasks.
+        
+    Returns:
+        list[Task]: List of Task objects. If task_id is provided, returns a list with one task.
+        str: Error message if an exception occurs during the operation.
+        
+    Example:
+        >>> all_tasks = get_task()  # Get all tasks
+        >>> specific_task = get_task("123e4567-e89b-12d3-a456-426614174000")  # Get specific task
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.get_task(task_id)
+        
+@mcp.tool()
+def create_task(ctx: Context, model_id: int, dataset_ids: list[str]) -> PyTask | str:
+    """
+    Create a new task in the database.
+    
+    Args:
+        model_id (int): The ID of the model to use for this task.
+        dataset_ids (list[str]): List of dataset IDs to associate with this task.
+        status (TaskStatus): The initial status of the task (QUEUED, RUNNING, SUCCESS, FAILED).
+
+    Returns:
+        Task: The newly created task object with generated task_id and associated datasets or error messaage if failed.
+        
+    Example:
+        >>> task = create_task("model-123", ["dataset-1", "dataset-2"], TaskStatus.QUEUED)
+        >>> print(f"Created task: {task.task_id} with {len(task.datasets)} datasets")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.create_task(model_id, dataset_ids)
+
+@mcp.tool()
+def delete_task(ctx: Context, task_id: str) -> str:
+    """
+    Delete a task from the database.
+    
+    Args:
+        task_id (str): The ID of the task to delete.
+        
+    Returns:
+        str: A response message indicating success or failure of the deletion.
+        
+    Note:
+        This operation will also delete all associated results.
+        
+    Example:
+        >>> response = delete_task("123e4567-e89b-12d3-a456-426614174000")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.delete_task(task_id)
+
+@mcp.tool()
+def update_task_status(ctx: Context, task_id: str, new_status: TaskStatus) -> PyTask | str:
+    """
+    Update the status of an existing task.
+    
+    Args:
+        task_id (str): The ID of the task to update.
+        new_status (TaskStatus): The new status for the task (QUEUED, RUNNING, SUCCESS, FAILED).
+        
+    Returns:
+        Task: The updated task object, or None if task not found.
+        str: Error message if task not found.
+                    
+    Example:
+        >>> updated_task = update_task_status(5000, TaskStatus.SUCCESS)
+        >>> print(f"Task status updated to: {updated_task.status.value}")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.update_task_status(task_id, new_status)
 
 # @mcp.tool()
 # def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
