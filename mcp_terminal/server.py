@@ -221,6 +221,56 @@ def update_task_status(ctx: Context, task_id: str, new_status: TaskStatus) -> Py
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.update_task_status(task_id, new_status)
 
+@mcp.tool()
+def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyModel] | str:
+    """
+    Retrieve result(s) from the database.
+    
+    Args:
+        result_id (Optional[str]): The specific result ID to retrieve. If None, returns all results.
+    Returns:
+        list[Result]: List of Result objects. If result_id is provided, returns a list with one result.
+        str: Error message if an exception occurs during the operation.
+    Example:
+        >>> all_results = get_result()  # Get all results
+        >>> specific_result = get_result("123e4567-e89b-12d3-a456-426614174000")  # Get specific result
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.get_result(result_id)
+
+@mcp.tool()
+def update_result_value(ctx: Context, result_id: str, new_value: float) -> PyModel | str:
+    """
+    Update the value of an existing result.
+    Args:
+        result_id (str): The ID of the result to update.
+        new_value (float): The new value for the result.
+    Returns:
+        Result: The updated Result object, or None if result not found.
+        str: Error message if result not found. 
+        Example: 
+        >>> updated_result = update_result_value(5000, 0.95)
+        >>> print(f"Result value updated to: {updated_result.value}")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.update_result_value(result_id, new_value)
+
+@mcp.tool()
+def delete_result(ctx: Context, result_id: str) -> str:
+    """
+    Delete a result from the database.
+    
+    Args:
+        result_id (str): The ID of the result to delete.
+    Returns:
+        str: A response message indicating success or failure of the deletion.
+    Example:
+        >>> response = delete_result(5000)
+        >>> print(response)  # Outputs success or failure message.
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.delete_result(result_id)
+
 # @mcp.tool()
 # def execute_fetch_sql_tool(ctx: Context, command: str, timeout: int = 30) -> str:
 #     """

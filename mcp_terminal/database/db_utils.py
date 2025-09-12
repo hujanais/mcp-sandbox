@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 import os
 
 from database.models import Base, Dataset, Model, Result, Task, TaskStatus
-from mcp_terminal.database.pydantic_models import PyModel, PyDataset, PyTask
+from mcp_terminal.database.pydantic_models import PyModel, PyDataset, PyResult, PyTask
 
 class DBUtils:
     """
@@ -477,7 +477,7 @@ class DBUtils:
         except Exception as e:
             print (f"Error creating result: {str(e)}")
 
-    def get_result(self, result_id: Optional[str] = None) -> list[Result]:
+    def get_result(self, result_id: Optional[str] = None) -> list[PyResult]:
         """
         Retrieve result(s) from the database.
         
@@ -491,13 +491,20 @@ class DBUtils:
             >>> all_results = get_result()  # Get all results
             >>> specific_result = get_result(5000)  # Get specific result
         """
-        with self.get_db() as db:
-            if result_id:
-                return db.query(Result).options(joinedload(Task.model)).filter(Result.result_id == result_id)
+        try:
+            db_results: list[Result] = []
+            with self.get_db() as db:
+                if result_id:
+                    db_results = db.query(Result).options(joinedload(Task.model)).filter(Result.result_id == result_id)
+                else:
+                 db_results = db.query(Result).all()
 
-            return db.query(Result).all()
+            pydantic_results = [PyResult.model_validate(result) for result in db_results]
+            return pydantic_results
+        except Exception as e:
+            print (f"Error retrieving results: {str(e)}")
 
-    def update_result_value(self, result_id: str, new_value: float) -> Result:
+    def update_result_value(self, result_id: str, new_value: float) -> PyResult:
         """
         Update the value of an existing result.
         
@@ -512,15 +519,20 @@ class DBUtils:
             >>> updated_result = update_result_value(5000, 98.7)
             >>> print(f"Result value updated to: {updated_result.value}")
         """
-        with self.get_db() as db:
-            result = self.get_result(result_id)
-            if result:
-                result.value = new_value
-                db.commit()
-                db.refresh(result)
-            return result
+        try:
+            with self.get_db() as db:
+                result = self.get_result(result_id)
+                if result:
+                    result.value = new_value
+                    db.commit()
+                    db.refresh(result)
+                    return PyTask.model_validate(result)
+                else:
+                    raise ValueError(f"Result with ID {result_id} not found")
+        except Exception as e:
+            print (f"Error updating result value: {str(e)}")
 
-    def delete_result(self, result_id: str) -> bool:
+    def delete_result(self, result_id: str) -> str:
         """
         Delete a result from the database.
         
@@ -534,13 +546,15 @@ class DBUtils:
             >>> success = delete_result(5000)
             >>> print(f"Result deletion: {'Success' if success else 'Failed'}")
         """
-        with self.get_db() as db:
-            result = self.get_result(result_id)
-            if result:
-                db.delete(result)
-                db.commit()
-                return True
-            return False
+        try:
+            with self.get_db() as db:
+                result = self.get_result(result_id)
+                if result:
+                    db.delete(result)
+                    db.commit()
+                    return "Result deleted successfully"
+        except Exception as e:
+            print (f"Error deleting result: {str(e)}")            
 
 if __name__ == "__main__":
     db_utils = DBUtils(reset_db=True)  # Set to True to reset the database

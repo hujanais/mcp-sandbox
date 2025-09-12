@@ -36,3 +36,17 @@ class PyTask(BaseModel):
     datasets: list[PyDataset] = Field(..., description="The datasets associated with the task.")
 
     model_config = {"from_attributes": True}
+
+class PyResult(BaseModel):
+    """A Pydantic model representing a result in the database.
+    Attributes:
+        result_id (int): The unique identifier for the result.
+        task_id (int): The identifier of the associated task.
+        result_value (float): The value of the result.
+    """
+    result_id: int = Field(..., description="The unique identifier for the result.")
+    task_id: int = Field(..., description="The identifier of the associated task.")
+    category: str = Field(..., description="The category of the result.")
+    value: float = Field(..., description="The value of the result.")
+
+    model_config = {"from_attributes": True}
