@@ -409,13 +409,14 @@ class DBUtils:
         """
         try:
             with self.get_db() as db:
-                task = self.get_task(task_id)
-                if task:
-                    task.status = new_status
+                db_task = db.query(Task).filter(Task.task_id == task_id).first()
+                db_task = self.get_task(task_id)
+                if db_task:
+                    db_task.status = new_status
                     db.commit()
-                    db.refresh(task)
+                    db.refresh(db_task)
 
-                    return PyTask.model_validate(task)
+                    return PyTask.model_validate(db_task)
                 else:
                     raise ValueError(f"Task with ID {task_id} not found")
         except Exception as e:
@@ -451,12 +452,12 @@ class DBUtils:
             print (f"Error deleting task: {e}")
 
     # --- RESULT CRUD ---
-    def create_result(self, task_id: str, category: str, value: float) -> Result:
+    def create_result(self, task_id: int, category: str, value: float) -> Result:
         """
         Create a new result in the database.
         
         Args:
-            task_id (str): The ID of the task this result belongs to.
+            task_id (int): The ID of the task this result belongs to.
             category (str): The category/class label for this result (e.g., 'dog', 'cat').
             value (float): The numerical value/score for this result.
             
@@ -477,12 +478,12 @@ class DBUtils:
         except Exception as e:
             print (f"Error creating result: {str(e)}")
 
-    def get_result(self, result_id: Optional[str] = None) -> list[PyResult]:
+    def get_result(self, result_id: Optional[int] = None) -> list[PyResult]:
         """
         Retrieve result(s) from the database.
         
         Args:
-            result_id (Optional[str]): The specific result ID to retrieve. If None, returns all results.
+            result_id (Optional[int]): The specific result ID to retrieve. If None, returns all results.
             
         Returns:
             list[Result]: List of Result objects. If result_id is provided, returns a list with one result.
@@ -494,22 +495,25 @@ class DBUtils:
         try:
             db_results: list[Result] = []
             with self.get_db() as db:
+                query = db.query(Result).options(
+                    joinedload(Result.task)
+                )
                 if result_id:
-                    db_results = db.query(Result).options(joinedload(Task.model)).filter(Result.result_id == result_id)
+                    db_results = query.filter(Result.result_id == result_id)
                 else:
-                 db_results = db.query(Result).all()
+                    db_results = query.all()
 
             pydantic_results = [PyResult.model_validate(result) for result in db_results]
             return pydantic_results
         except Exception as e:
             print (f"Error retrieving results: {str(e)}")
 
-    def update_result_value(self, result_id: str, new_value: float) -> PyResult:
+    def update_result_value(self, result_id: int, new_value: float) -> PyResult:
         """
         Update the value of an existing result.
         
         Args:
-            result_id (str): The ID of the result to update.
+            result_id (int): The ID of the result to update.
             new_value (float): The new numerical value for the result.
             
         Returns:
@@ -521,12 +525,12 @@ class DBUtils:
         """
         try:
             with self.get_db() as db:
-                result = self.get_result(result_id)
-                if result:
-                    result.value = new_value
+                db_result = db.query(Result).filter(Result.result_id == result_id).first()
+                if db_result:
+                    db_result.value = new_value
                     db.commit()
-                    db.refresh(result)
-                    return PyTask.model_validate(result)
+                    db.refresh(db_result)
+                    return PyTask.model_validate(db_result)
                 else:
                     raise ValueError(f"Result with ID {result_id} not found")
         except Exception as e:

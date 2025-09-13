@@ -10,13 +10,12 @@ from database.db_utils import DBUtils  # noqa: E402
 if __name__ == "__main__":
     try:
         db_utils = DBUtils()
+        results = db_utils.get_result(None)
+        for result in results:
+            print(json.dumps(result.__dict__, indent=4))
 
-        allTasks = db_utils.get_task()
-        for task in allTasks:
-            print(task)
+        db_utils.update_result_value(3, -1.232)
 
-        resp = db_utils.create_task(model_id=12334, dataset_ids=[])
-        print(resp) 
 
         # # Create a new model
         # print('----- Create a new model -----')

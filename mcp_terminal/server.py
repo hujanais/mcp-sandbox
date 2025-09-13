@@ -13,7 +13,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from mcp.server.fastmcp import Context, FastMCP
 from database.db_utils import DBUtils
-from database.pydantic_models import PyModel, PyTask
+from database.pydantic_models import PyModel, PyResult, PyTask
 from tools.terminal_tool import (
     change_directory,
     delete_file_content,
@@ -66,6 +66,71 @@ mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8050, lifespan=app_lifespan)
 #     db = ctx.request_context.lifespan_context.db
 #     return db.introspect_schema()
 
+@mcp.tool("get_db_schema")
+def get_db_schema(ctx: Context) -> str:
+    """
+    Retrieve the database schema and useful information about the database.
+    This will return the CREATE TABLE scripts and associated relationships.
+    """
+    _ = ctx  # Reference ctx to avoid "not accessed" error
+    return """
+    # Enum for task status
+        class TaskStatus(enum.Enum):
+            QUEUED = "QUEUED"
+            RUNNING = "RUNNING"
+            SUCCESS = "SUCCESS"
+            FAILED = "FAILED"
+
+        # Association table for many-to-many between Task and Dataset
+        task_dataset_association = Table(
+            "task_dataset",
+            Base.metadata,
+            Column("task_id", Integer, ForeignKey("task.task_id", ondelete="CASCADE"), primary_key=True),
+            Column("dataset_id", Integer, ForeignKey("dataset.dataset_id", ondelete="CASCADE"), primary_key=True)
+        )
+
+        class Model(Base):
+            __tablename__ = "model"
+            model_id = Column(Integer, primary_key=True, autoincrement=True)
+            model_name = Column(String, nullable=False)
+
+            tasks = relationship("Task", back_populates="model", cascade="all, delete")
+
+        class Dataset(Base):
+            __tablename__ = "dataset"
+            dataset_id = Column(Integer, primary_key=True, autoincrement=True)
+            dataset_name = Column(String, nullable=False)
+
+            tasks = relationship(
+                "Task",
+                secondary=task_dataset_association,
+                back_populates="datasets"
+            )
+
+        class Task(Base):
+            __tablename__ = "task"
+            task_id = Column(Integer, primary_key=True, autoincrement=True)
+            model_id = Column(Integer, ForeignKey("model.model_id", ondelete="CASCADE"), nullable=False)
+            status = Column(Enum(TaskStatus), nullable=False)
+
+            model = relationship("Model", back_populates="tasks")
+            datasets = relationship(
+                "Dataset",
+                secondary=task_dataset_association,
+                back_populates="tasks"
+            )
+            result = relationship("Result", back_populates="task", uselist=False, cascade="all, delete")
+
+        class Result(Base):
+            __tablename__ = "result"
+            result_id = Column(Integer, primary_key=True, autoincrement=True)
+            task_id = Column(Integer, ForeignKey("task.task_id", ondelete="CASCADE"), nullable=False)
+            value = Column(Float, nullable=False)
+            category = Column(String, nullable=True)
+
+            task = relationship("Task", back_populates="result")
+        """
+
 @mcp.tool()
 def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
     """
@@ -103,7 +168,7 @@ def create_model(ctx: Context, model_name: str) -> PyModel:
     return response
 
 @mcp.tool()
-def delete_model(ctx: Context, model_id: str) -> str:
+def delete_model(ctx: Context, model_id: int) -> str:
     """
     Delete a model from the database.
     
@@ -124,7 +189,7 @@ def delete_model(ctx: Context, model_id: str) -> str:
     return db.delete_model(model_id)
 
 @mcp.tool()
-def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
+def update_model(ctx: Context, model_id: int, model_name: str) -> PyModel:
     """
     Update the name of an existing model.
     
@@ -145,18 +210,25 @@ def update_model(ctx: Context, model_id: str, model_name: str) -> PyModel:
 @mcp.tool()
 def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
     """
-    Retrieve task(s) from the database.
-    
+    Retrieve one or more tasks from the database.
+
     Args:
         task_id (Optional[str]): The specific task ID to retrieve. If None, returns all tasks.
-        
+
     Returns:
-        list[Task]: List of Task objects. If task_id is provided, returns a list with one task.
-        str: Error message if an exception occurs during the operation.
-        
+        list[PyTask]: List of Task objects if successful.
+        str: Error message if an error or exception occurs (e.g., not found, database error).
+
+    Notes:
+        This function may return a string error message instead of a list if an exception is raised or the query fails. This pattern is used throughout the MCP API to provide clear error feedback in protocol responses.
+
     Example:
-        >>> all_tasks = get_task()  # Get all tasks
-        >>> specific_task = get_task("123e4567-e89b-12d3-a456-426614174000")  # Get specific task
+        >>> all_tasks = get_task(ctx)
+        >>> specific_task = get_task(ctx, "123e4567-e89b-12d3-a456-426614174000")
+        >>> if isinstance(specific_task, str):
+        ...     print(f"Error: {specific_task}")
+        ... else:
+        ...     print(specific_task)
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.get_task(task_id)
@@ -165,29 +237,35 @@ def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
 def create_task(ctx: Context, model_id: int, dataset_ids: list[str]) -> PyTask | str:
     """
     Create a new task in the database.
-    
+
     Args:
         model_id (int): The ID of the model to use for this task.
         dataset_ids (list[str]): List of dataset IDs to associate with this task.
-        status (TaskStatus): The initial status of the task (QUEUED, RUNNING, SUCCESS, FAILED).
 
     Returns:
-        Task: The newly created task object with generated task_id and associated datasets or error messaage if failed.
-        
+        PyTask: The newly created task object if successful.
+        str: Error message if creation fails (e.g., invalid model, database error).
+
+    Notes:
+        Functions in the MCP API may return either a data object or a string error message. Always check the return type before using the result.
+
     Example:
-        >>> task = create_task("model-123", ["dataset-1", "dataset-2"], TaskStatus.QUEUED)
-        >>> print(f"Created task: {task.task_id} with {len(task.datasets)} datasets")
+        >>> result = create_task(ctx, 123, ["ds1", "ds2"])
+        >>> if isinstance(result, str):
+        ...     print(f"Error: {result}")
+        ... else:
+        ...     print(f"Created task: {result.task_id}")
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.create_task(model_id, dataset_ids)
 
 @mcp.tool()
-def delete_task(ctx: Context, task_id: str) -> str:
+def delete_task(ctx: Context, task_id: int) -> str:
     """
     Delete a task from the database.
     
     Args:
-        task_id (str): The ID of the task to delete.
+        task_id (int): The ID of the task to delete.
         
     Returns:
         str: A response message indicating success or failure of the deletion.
@@ -202,66 +280,113 @@ def delete_task(ctx: Context, task_id: str) -> str:
     return db.delete_task(task_id)
 
 @mcp.tool()
-def update_task_status(ctx: Context, task_id: str, new_status: TaskStatus) -> PyTask | str:
+def update_task_status(ctx: Context, task_id: int, new_status: TaskStatus) -> PyTask | str:
     """
     Update the status of an existing task.
-    
+
     Args:
-        task_id (str): The ID of the task to update.
+        task_id (int): The ID of the task to update.
         new_status (TaskStatus): The new status for the task (QUEUED, RUNNING, SUCCESS, FAILED).
-        
+
     Returns:
-        Task: The updated task object, or None if task not found.
-        str: Error message if task not found.
-                    
+        PyTask: The updated task object if successful.
+        str: Error message if the task is not found or update fails.
+
+    Notes:
+        MCP API functions may return either a data object or a string error message. Always check the return type before using the result.
+
     Example:
-        >>> updated_task = update_task_status(5000, TaskStatus.SUCCESS)
-        >>> print(f"Task status updated to: {updated_task.status.value}")
+        >>> result = update_task_status(ctx, "task-123", TaskStatus.SUCCESS)
+        >>> if isinstance(result, str):
+        ...     print(f"Error: {result}")
+        ... else:
+        ...     print(f"Task status updated to: {result.status.value}")
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.update_task_status(task_id, new_status)
 
 @mcp.tool()
-def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyModel] | str:
+def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyResult] | str:
     """
-    Retrieve result(s) from the database.
-    
+    Retrieve one or more results from the database.
+
     Args:
         result_id (Optional[str]): The specific result ID to retrieve. If None, returns all results.
+
     Returns:
-        list[Result]: List of Result objects. If result_id is provided, returns a list with one result.
-        str: Error message if an exception occurs during the operation.
+        list[PyResult]: List of Result objects if successful.
+        str: Error message if an error or exception occurs (e.g., not found, database error).
+
+    Notes:
+        This function may return a string error message instead of a list if an exception is raised or the query fails. This pattern is used throughout the MCP API to provide clear error feedback in protocol responses.
+
     Example:
-        >>> all_results = get_result()  # Get all results
-        >>> specific_result = get_result("123e4567-e89b-12d3-a456-426614174000")  # Get specific result
+        >>> all_results = get_result(ctx)
+        >>> specific_result = get_result(ctx, "result-123")
+        >>> if isinstance(specific_result, str):
+        ...     print(f"Error: {specific_result}")
+        ... else:
+        ...     print(specific_result)
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.get_result(result_id)
 
 @mcp.tool()
-def update_result_value(ctx: Context, result_id: str, new_value: float) -> PyModel | str:
+def create_result(ctx: Context, task_id: int, category: str, value: float) -> PyResult | str:
+    """
+    Create a new result in the database.
+    Args:
+        task_id (int): The ID of the task associated with this result.
+        category (str): The category of the result.
+        value (float): The value of the result.
+    Returns:
+        PyResult: The created Result object if successful.
+        str: Error message if creation fails (e.g., invalid task, database error).
+    Notes:
+        Functions in the MCP API may return either a data object or a string error message. Always check the return type before using the result.
+    Example:
+        >>> result = create_result(ctx, "task-123", "accuracy", 0.95)
+        >>> if isinstance(result, str):
+        ...     print(f"Error: {result}")
+        ... else:
+        ...     print(f"Created result: {result.result_id}")
+    """
+    db: DBUtils = ctx.request_context.lifespan_context.db
+    return db.create_result(task_id, category, value)
+
+@mcp.tool()
+def update_result_value(ctx: Context, result_id: int, new_value: float) -> PyResult | str:
     """
     Update the value of an existing result.
+
     Args:
-        result_id (str): The ID of the result to update.
+        result_id (int): The ID of the result to update.
         new_value (float): The new value for the result.
+
     Returns:
-        Result: The updated Result object, or None if result not found.
-        str: Error message if result not found. 
-        Example: 
-        >>> updated_result = update_result_value(5000, 0.95)
-        >>> print(f"Result value updated to: {updated_result.value}")
+        PyResult: The updated Result object if successful.
+        str: Error message if the result is not found or update fails.
+
+    Notes:
+        MCP API functions may return either a data object or a string error message. Always check the return type before using the result.
+
+    Example:
+        >>> result = update_result_value(ctx, "result-123", 0.95)
+        >>> if isinstance(result, str):
+        ...     print(f"Error: {result}")
+        ... else:
+        ...     print(f"Result value updated to: {result.value}")
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
     return db.update_result_value(result_id, new_value)
 
 @mcp.tool()
-def delete_result(ctx: Context, result_id: str) -> str:
+def delete_result(ctx: Context, result_id: int) -> str:
     """
     Delete a result from the database.
     
     Args:
-        result_id (str): The ID of the result to delete.
+        result_id (int): The ID of the result to delete.
     Returns:
         str: A response message indicating success or failure of the deletion.
     Example:
