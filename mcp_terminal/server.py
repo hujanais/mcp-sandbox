@@ -13,7 +13,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from mcp.server.fastmcp import Context, FastMCP
 from database.db_utils import DBUtils
-from database.pydantic_models import PyModel, PyResult, PyTask
+from database.pydantic_models import PyModel, PyResult, PyTask, PyDataset
+from database.models import Model, Task, Result, Dataset
 from tools.terminal_tool import (
     change_directory,
     delete_file_content,
@@ -140,14 +141,15 @@ def get_model(ctx: Context, model_id: Optional[str] = None) -> list[PyModel]:
         model_id (Optional[str]): The specific model ID to retrieve. If None, returns all models.
         
     Returns:
-        list[Model]: List of Model objects. If model_id is provided, returns a list with one model.
+        list[PyModel]: List of Pydantic Model objects. If model_id is provided, returns a list with one model.
         
     Example:
         >>> all_models = get_model()  # Get all models
         >>> specific_model = get_model("123e4567-e89b-12d3-a456-426614174000")  # Get specific model
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.get_model(model_id)
+    sqlalchemy_models = db.get_model(int(model_id) if model_id else None)
+    return [PyModel.model_validate(model) for model in sqlalchemy_models]
 
 @mcp.tool()
 def create_model(ctx: Context, model_name: str) -> PyModel:
@@ -158,14 +160,14 @@ def create_model(ctx: Context, model_name: str) -> PyModel:
         model_name (str): The name of the model to be created.
         
     Returns:
-        PyResponse[Model]: A response object containing the created Model object.
-        >>> print({"status": response.status, "message": response.message, "data": response.data})
+        PyModel: A Pydantic Model object containing the created model.
+        
     Example:
         >>> model = create_model("bert-base-uncased")
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
-    response = db.create_model(model_name)
-    return response
+    sqlalchemy_model = db.create_model(model_name)
+    return PyModel.model_validate(sqlalchemy_model)
 
 @mcp.tool()
 def delete_model(ctx: Context, model_id: int) -> str:
@@ -195,17 +197,17 @@ def update_model(ctx: Context, model_id: int, model_name: str) -> PyModel:
     
     Args:
         model_id (int): The ID of the model to update.
-        new_name (str): The new name for the model.
+        model_name (str): The new name for the model.
         
     Returns:
-        PyResponse[Model]: A response object containing the updated Model object.
+        PyModel: A Pydantic Model object containing the updated model.
         
     Example:
         >>> response = update_model(5000, "bert-large-uncased")
-        >>> print({"status": response.status, "message": response.message, "data": response.data})
     """
     db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.update_model(model_id, model_name)
+    sqlalchemy_model = db.update_model(model_id, model_name)
+    return PyModel.model_validate(sqlalchemy_model)
 
 @mcp.tool()
 def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
@@ -216,7 +218,7 @@ def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
         task_id (Optional[str]): The specific task ID to retrieve. If None, returns all tasks.
 
     Returns:
-        list[PyTask]: List of Task objects if successful.
+        list[PyTask]: List of Pydantic Task objects if successful.
         str: Error message if an error or exception occurs (e.g., not found, database error).
 
     Notes:
@@ -230,8 +232,12 @@ def get_task(ctx: Context, task_id: Optional[str] = None) -> list[PyTask] | str:
         ... else:
         ...     print(specific_task)
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.get_task(task_id)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        sqlalchemy_tasks = db.get_task(task_id)
+        return [PyTask.model_validate(task) for task in sqlalchemy_tasks]
+    except Exception as e:
+        return f"Error retrieving tasks: {e}"
         
 @mcp.tool()
 def create_task(ctx: Context, model_id: int, dataset_ids: list[str]) -> PyTask | str:
@@ -243,7 +249,7 @@ def create_task(ctx: Context, model_id: int, dataset_ids: list[str]) -> PyTask |
         dataset_ids (list[str]): List of dataset IDs to associate with this task.
 
     Returns:
-        PyTask: The newly created task object if successful.
+        PyTask: The newly created Pydantic task object if successful.
         str: Error message if creation fails (e.g., invalid model, database error).
 
     Notes:
@@ -256,8 +262,12 @@ def create_task(ctx: Context, model_id: int, dataset_ids: list[str]) -> PyTask |
         ... else:
         ...     print(f"Created task: {result.task_id}")
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.create_task(model_id, dataset_ids)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        sqlalchemy_task = db.create_task(model_id, dataset_ids)
+        return PyTask.model_validate(sqlalchemy_task)
+    except Exception as e:
+        return f"Error creating task: {e}"
 
 @mcp.tool()
 def delete_task(ctx: Context, task_id: int) -> str:
@@ -289,7 +299,7 @@ def update_task_status(ctx: Context, task_id: int, new_status: TaskStatus) -> Py
         new_status (TaskStatus): The new status for the task (QUEUED, RUNNING, SUCCESS, FAILED).
 
     Returns:
-        PyTask: The updated task object if successful.
+        PyTask: The updated Pydantic task object if successful.
         str: Error message if the task is not found or update fails.
 
     Notes:
@@ -302,8 +312,12 @@ def update_task_status(ctx: Context, task_id: int, new_status: TaskStatus) -> Py
         ... else:
         ...     print(f"Task status updated to: {result.status.value}")
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.update_task_status(task_id, new_status)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        task = db.update_task_status(task_id, new_status)
+        return PyTask(task_id=task.task_id, status=task.status, model_id=task.model_id, datasets=[])
+    except Exception as e:
+        return f"Error updating task status: {e}"
 
 @mcp.tool()
 def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyResult] | str:
@@ -314,7 +328,7 @@ def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyResult] 
         result_id (Optional[str]): The specific result ID to retrieve. If None, returns all results.
 
     Returns:
-        list[PyResult]: List of Result objects if successful.
+        list[PyResult]: List of Pydantic Result objects if successful.
         str: Error message if an error or exception occurs (e.g., not found, database error).
 
     Notes:
@@ -328,8 +342,12 @@ def get_result(ctx: Context, result_id: Optional[str] = None) -> list[PyResult] 
         ... else:
         ...     print(specific_result)
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.get_result(result_id)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        sqlalchemy_results = db.get_result(int(result_id) if result_id else None)
+        return [PyResult.model_validate(result) for result in sqlalchemy_results]
+    except Exception as e:
+        return f"Error retrieving results: {e}"
 
 @mcp.tool()
 def create_result(ctx: Context, task_id: int, category: str, value: float) -> PyResult | str:
@@ -340,7 +358,7 @@ def create_result(ctx: Context, task_id: int, category: str, value: float) -> Py
         category (str): The category of the result.
         value (float): The value of the result.
     Returns:
-        PyResult: The created Result object if successful.
+        PyResult: The created Pydantic Result object if successful.
         str: Error message if creation fails (e.g., invalid task, database error).
     Notes:
         Functions in the MCP API may return either a data object or a string error message. Always check the return type before using the result.
@@ -351,8 +369,12 @@ def create_result(ctx: Context, task_id: int, category: str, value: float) -> Py
         ... else:
         ...     print(f"Created result: {result.result_id}")
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.create_result(task_id, category, value)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        sqlalchemy_result = db.create_result(task_id, category, value)
+        return PyResult.model_validate(sqlalchemy_result)
+    except Exception as e:
+        return f"Error creating result: {e}"
 
 @mcp.tool()
 def update_result_value(ctx: Context, result_id: int, new_value: float) -> PyResult | str:
@@ -364,7 +386,7 @@ def update_result_value(ctx: Context, result_id: int, new_value: float) -> PyRes
         new_value (float): The new value for the result.
 
     Returns:
-        PyResult: The updated Result object if successful.
+        PyResult: The updated Pydantic Result object if successful.
         str: Error message if the result is not found or update fails.
 
     Notes:
@@ -377,8 +399,12 @@ def update_result_value(ctx: Context, result_id: int, new_value: float) -> PyRes
         ... else:
         ...     print(f"Result value updated to: {result.value}")
     """
-    db: DBUtils = ctx.request_context.lifespan_context.db
-    return db.update_result_value(result_id, new_value)
+    try:
+        db: DBUtils = ctx.request_context.lifespan_context.db
+        sqlalchemy_result = db.update_result_value(result_id, new_value)
+        return PyResult.model_validate(sqlalchemy_result)
+    except Exception as e:
+        return f"Error updating result value: {e}"
 
 @mcp.tool()
 def delete_result(ctx: Context, result_id: int) -> str:

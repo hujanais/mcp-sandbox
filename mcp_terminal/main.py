@@ -2,6 +2,9 @@ import json
 import os
 import sys
 
+from database.models import TaskStatus
+from database.pydantic_models import PyTask
+
 module_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.append(module_path)
 
@@ -10,13 +13,13 @@ from database.db_utils import DBUtils  # noqa: E402
 if __name__ == "__main__":
     try:
         db_utils = DBUtils()
-        results = db_utils.get_result(None)
-        for result in results:
-            print(json.dumps(result.__dict__, indent=4))
+        # results = db_utils.get_result(None)
+        # for result in results:
+        #     print(json.dumps(result.__dict__, indent=4))
 
-        db_utils.update_result_value(3, -1.232)
-
-
+        task = db_utils.update_task_status(1, new_status=TaskStatus.SUCCESS)
+        pyTask = PyTask(task_id=task.task_id, status=task.status, model_id=task.model_id, datasets=[])
+        print(pyTask)
         # # Create a new model
         # print('----- Create a new model -----')
         # new_model = db_utils.create_model("bert-base-uncased")

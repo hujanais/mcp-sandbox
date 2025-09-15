@@ -11,6 +11,13 @@
       // "program": "${workspaceFolder}/mcp_terminal/database/db_utils.py",
       "program": "${file}",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Python Debugger: MCP Server",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "mcp dev ${workspaceFolder}/mcp_terminal/server.py",
+      "console": "integratedTerminal"
     }
   ]
 }
