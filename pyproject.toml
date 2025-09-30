@@ -13,6 +13,8 @@ dependencies = [
     "requests>=2.32.4",
     "sqlalchemy>=2.0.42",
     "mypy>=1.17.1",
+    "altair[all]>=5.5.0",
+    "vega-datasets>=0.9.0",
 ]
 
 [dependency-groups]
