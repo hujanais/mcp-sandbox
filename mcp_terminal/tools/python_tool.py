@@ -1,20 +1,20 @@
 from textwrap import dedent
+from typing import Dict, Optional
 import altair as alt
 from vega_datasets import data
 
-class PythonTools():
+class PythonTools:
     def __init__(self):
         pass
 
-    def run_python_code(self, code):
-        exec(code)
+    def run_python_code(self, code, safe_globals: Optional[Dict] = None) -> str:
+        return exec(code, safe_globals)
 
 if __name__ == "__main__":
     tool = PythonTools()
-    # code = """print('Hello from PythonTools!')"""
     code = dedent("""
-        import altair as alt
-        from vega_datasets import data
+        # import altair as alt
+        # from vega_datasets import data
 
         source = data.barley()
 
@@ -38,6 +38,11 @@ if __name__ == "__main__":
             x2='ci1(yield)',
         )
 
-        points + error_bars
+        chart = points + error_bars
+        return chart
     """)
-    tool.run_python_code(code)
+
+    globals = {}
+    globals["alt"] = alt
+    globals["data"] = data
+    tool.run_python_code(code, globals)
