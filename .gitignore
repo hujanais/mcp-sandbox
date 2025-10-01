@@ -8,6 +8,7 @@ wheels/
 .DS_Store
 
 data/
+*.html
 
 # Virtual environments
 .venv
