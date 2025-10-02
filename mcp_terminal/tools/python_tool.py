@@ -8,7 +8,16 @@ import pandas as pd
 
 class PythonTools:
     def __init__(self):
+        self.counter = 0
         pass
+
+    def add_counter(self) -> int:
+        """A simple function that adds 1 to a counter and returns the new value.
+        
+        :return: the new value of the counter.
+        """
+        self.counter += 1
+        return self.counter
 
     def run_python_code(self, code, data: pd.DataFrame) -> str:
         """This function runs Python code in the current environment.  This function only has access to the altair and vega_datasets libraries.
@@ -20,24 +29,15 @@ class PythonTools:
         :param code: The code to run.
         :return: value of `variable_to_return` if successful, otherwise returns an error message.
         """
-        # Redirect stdout to capture print outputs
-        old_stdout = sys.stdout
-        new_stdout = io.StringIO()
-        sys.stdout = new_stdout
-
         try:
             result = {}
             safe_globals = {"alt": alt, "pd": pd}
             safe_locals = {"data": data, "result": result}
-            output = exec(code, safe_globals, safe_locals)
+            exec(code, safe_globals, safe_locals)
 
-            # Retrieve the printed output
-            # output = new_stdout.getvalue()
+            output = safe_locals.get('result', None)
 
-            # Reset stdout
-            # sys.stdout = old_stdout
-
-            return output or "No output captured"
+            return output or "No result"
         except Exception as e:
             return f"ERROR: {str(e)}"
         
@@ -70,12 +70,14 @@ if __name__ == "__main__":
         )
 
         chart = points + error_bars
-        chart.save('chart.html')
-        return "chart saved to chart.html"
+        html_string = chart.to_html()
+        result = html_string
     """)
 
-    # globals = {}
-    # globals["alt"] = alt
-    # globals["data"] = data
-    output = tool.run_python_code(code="""return "hello" """, data=data.barley())
-    print(output)
+    # safe_globals = {"alt": alt, "pd": pd}
+    # safe_locals = {"data": data.barley()}
+    # exec(code, safe_globals, safe_locals)
+    # print(safe_locals.get('result'))
+
+    result = tool.run_python_code(code, data.barley())
+    print(result)
