@@ -1,7 +1,8 @@
 import os
 import sys
+from textwrap import dedent
 import pandas as pd
-from typing import Any, List
+from typing import Any, Dict, List
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from agno.tools import Toolkit
@@ -18,7 +19,7 @@ class AltairVegaTools(Toolkit):
         tools: List[Any] = [self.run_python_code]
         super().__init__(name="Altair_Vega_Tool", tools=tools, **kwargs)
 
-    def run_python_code(code: str, data: pd.DataFrame) -> str:
+    def run_python_code(code: str, jsonData: str) -> str:
         """
         Executes the provided Python code in a restricted environment.
 
@@ -26,27 +27,28 @@ class AltairVegaTools(Toolkit):
         If failed, returns an error message which will include ERROR: at the start.
 
         :param code: The code to run.
-        :param data: The pandas DataFrame to be used in the code to run.
+        :param jsonData: json string of the object to visualize
         :return: the result from the python code if successful, otherwise returns an error message.
         """
-        result = PythonTools().run_python_code(code, data)
+        result = PythonTools().run_python_code(code, jsonData)
         return result
   
 systemPrompt = """
 You are an expert Vega-Altair developer that will be able to write concise code to creatively visualize Pandas dataframe input.
 When answering, just return the generated response without any further explanation or text.
 
-The variable 'df' will always contain the provided dataframe so there is no need to recreate it in code.  The data will be injected into the code in an exec function.
+The variable 'jsonData' will always contain the provided dataframe so there is no need to recreate it in code.  The data will be injected into the code in an exec function.
 
 Here are some chart code examples.
 # General expected code structure
 ```python
+import json
 import altair as alt
 import pandas as pd
 import math
 
 # Input Dataframe: this data is always defined outside this function
-source = df
+df = pd.DataFrame(json.loads(jsonData))
 
 # Create Altair Chart
 
@@ -119,16 +121,13 @@ result = alt.layer(
     axis_lines_labels,
     title=['Observations throughout the day', '']
 ).to_html()
-
-Human: Visualize the following dataset df = {"sample": [1,2,3,4,5], "temperature": [23.1, 24.2, 25.3, 26.4, 27.5]}
-Thinking: The human is asking to visualize a dataset so I should use my expertise to create the python code to create a visualization.
-Observe: I have created the python code to visualize the dataset with the special stipulation that the dataframe called 'df' and just needs to be referenced in the code
-and assign the variable 'result'.
-Action: I will now send the visualization python code to the human with no further explanation.  I will make sure that the code is formatted in a code block that is runnable.
 ```
 """
 agent = Agent(
     model=OpenAIChat(id="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
     system_message=systemPrompt,
     reasoning=True)
-agent.print_response("""Visualize the following dataframe, df = {"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000. 2432]}""", stream=True)
+
+agent.print_response(f"""Visualize the 2 players on a single radar chart.       
+   [{"Name: Alexander Isak, OVR: 85, PAC: 85, SHO: 84, PAS: 73, DRI: 86, DEF: 39, PHY: 74"}, {"Name: Erling Haaland, OVR: 91, PAC: 88, SHO: 92, PAS: 70, DRI: 81, DEF: 45, PHY: 88"}]
+""", stream=True)
