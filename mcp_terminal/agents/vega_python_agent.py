@@ -13,7 +13,7 @@ from tools.python_tool import PythonTools
 load_dotenv()
 
 class AltairVegaTools(Toolkit):
-    """AltairVegaTools that will be able to run Altair and Vega python code to generate the chart html."""
+    """AltairVegaTools that will be able to run Altair and Vega python code to the chart html."""
     def __init__(self, **kwargs):
         tools: List[Any] = [self.run_python_code]
         super().__init__(name="Altair_Vega_Tool", tools=tools, **kwargs)
@@ -124,25 +124,11 @@ Human: Visualize the following dataset df = {"sample": [1,2,3,4,5], "temperature
 Thinking: The human is asking to visualize a dataset so I should use my expertise to create the python code to create a visualization.
 Observe: I have created the python code to visualize the dataset with the special stipulation that the dataframe called 'df' and just needs to be referenced in the code
 and assign the variable 'result'.
-Action: I will now send the visualization python code to the Altair tool to generate the chart html.
+Action: I will now send the visualization python code to the human with no further explanation.  I will make sure that the code is formatted in a code block that is runnable.
 ```
 """
-# agent = Agent(
-#     model=OpenAIChat(id="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
-#     system_message=systemPrompt,
-#     tool_call_limit=1,
-#     reasoning=True)
-
-# agent.print_response("""Visualize the following dataframe, df = {"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000. 2432]}""", stream=True, show_full_reasoning=True)
-
-fifa_data = pd.DataFrame({
-    'Attribute': ['Overall Rating', 'Pace', 'Shooting', 'Passing', 'Dribbling', 'Defending', 'Physicality', 
-                  'Acceleration', 'Sprint Speed', 'Agility', 'Balance', 'Reactions', 'Ball Control', 
-                  'Dribbling', 'Composure', 'Positioning', 'Finishing', 'Shot Power', 'Long Shots', 
-                  'Volleys', 'Penalties', 'Vision', 'Crossing', 'Free Kick Accuracy', 'Long Passing', 
-                  'Curve', 'Jumping', 'Stamina', 'Strength', 'Aggression'],
-    'Category': ['General']*7 + ['Movement']*5 + ['Dribbling']*3 + ['Attacking']*6 + ['Passing']*5 + ['Physicality']*4,
-    'Rating': [88, 78, 'N/A', 'N/A', 90, 33, 64, 84, 73, 84, 89, 80, 94, 89, 92, 86, 84, 84, 87, 89, 75, 87, 80, 93, 84, 90, 70, 70, 68, 44]
-})
-
-print(fifa_data)
+agent = Agent(
+    model=OpenAIChat(id="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
+    system_message=systemPrompt,
+    reasoning=True)
+agent.print_response("""Visualize the following dataframe, df = {"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000. 2432]}""", stream=True)

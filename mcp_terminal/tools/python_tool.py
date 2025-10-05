@@ -44,37 +44,15 @@ class PythonTools:
 if __name__ == "__main__":
     tool = PythonTools()
     code = dedent("""
-        import altair as alt
-        import pandas as pd
+        import altair as alt                                                                                                                                                                                                 
+        import pandas as pd                                                                                                                                                                                                  
 
-        # Use the corrected DataFrame
-        df = pd.DataFrame({
-            'year': [2020, 2021, 2022, 2023, 2024, 2025],
-            'avgValue': [1.53, 1.66, 1.75, 0.9, 2.5, 2.1]
-        })
+        source = pd.DataFrame({"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000, 2432]})                                                                                                                         
 
-        # Create a chart with both lines and points
-        chart = alt.Chart(df).mark_line().encode(
-            x=alt.X('year:O', title='Year', axis=alt.Axis(labelAngle=0)),
-            y=alt.Y('avgValue:Q', title='Average Value', scale=alt.Scale(domain=[0, 3])),
-            order='year'  # Ensure proper line ordering
-        )
-
-        # Add points on top to highlight individual data points
-        points = alt.Chart(df).mark_circle(size=80).encode(
-            x='year:O',
-            y='avgValue:Q',
-            tooltip=['year', 'avgValue']
-        )
-
-        # Combine the two layers
-        result = (chart + points).properties(
-            title='Average Values by Year (2020-2025)',
-            width=500,
-            height=300
-        )
-                  
-        result.save('chart.html')
+        result = alt.Chart(source).mark_line().encode(                                                                                                                                                                       
+            x='year:O',                                                                                                                                                                                                      
+            y='close:Q'                                                                                                                                                                                                      
+        ).to_html()                                   
     """)
 
     # safe_globals = {"alt": alt, "pd": pd}
@@ -82,5 +60,6 @@ if __name__ == "__main__":
     # exec(code, safe_globals, safe_locals)
     # print(safe_locals.get('result'))
 
-    result = tool.run_python_code(code, data.barley())
+    df = pd.DataFrame({"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000, 2432]})
+    result = tool.run_python_code(code, df)
     print(result)
