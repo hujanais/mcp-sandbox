@@ -5,11 +5,13 @@ import pandas as pd
 from typing import Any, Dict, List
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
+from agno.models.huggingface import HuggingFace
 from agno.tools import Toolkit
 from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tools.python_tool import PythonTools
+from llm_models.huggingface_model import hf_model
 
 load_dotenv()
 
@@ -317,22 +319,36 @@ result = alt.layer(
 ```python
 import altair as alt
 from vega_datasets import data
+import pandas as pd
 
-source = data.barley()
+df = pd.DataFrame({
+    'yield': [29.86667, 32.00000, 32.96667, 58.80000, 43.76667, 22.13333, 38.50000, 29.13333, 24.93334, 31.36667],
+    'variety': ['Peatland', 'Peatland', 'Manchuria', 'Wisconsin No. 38', 'Trebi', 'Manchuria', 'Svansota', 'Glabron', 'No. 462', 'Peatland'],
+    'year': [1931, 1931, 1931, 1931, 1931, 1932, 1932, 1931, 1931, 1932],
+    'site': ['Morris', 'Duluth', 'Grand Rapids', 'Waseca', 'Morris', 'Grand Rapids', 'Waseca', 'Grand Rapids', 'Grand Rapids', 'Duluth']
+})
 
-alt.Chart(source).mark_bar().encode(
+alt.Chart(df).mark_bar().encode(
     x='sum(yield):Q',
     y='year:O',
+    
     color='year:N',
     row='site:N'
 )
 ```
 """
 agent = Agent(
-    model=OpenAIChat(id="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
+    model=hf_model,
     system_message=systemPrompt,
     reasoning=True)
 
-agent.print_response(f"""Visualize the 2 players on a single horizontal groups bar chart.       
-   [{"Name: Alexander Isak, OVR: 85, PAC: 85, SHO: 84, PAS: 73, DRI: 86, DEF: 39, PHY: 74"}, {"Name: Erling Haaland, OVR: 91, PAC: 88, SHO: 92, PAS: 70, DRI: 81, DEF: 45, PHY: 88"}]
-""", stream=True)
+agent.print_response("Tell me a joke about a sunny day.", stream=True)
+
+# agent = Agent(
+#     model=OpenAIChat(id="gpt-4o-mini", api_key=os.getenv("OPENAI_API_KEY")),
+#     system_message=systemPrompt,
+#     reasoning=True)
+
+# agent.print_response(f"""Visualize the 2 players on a single horizontal groups bar chart.       
+#    [{"Name: Alexander Isak, OVR: 85, PAC: 85, SHO: 84, PAS: 73, DRI: 86, DEF: 39, PHY: 74"}, {"Name: Erling Haaland, OVR: 91, PAC: 88, SHO: 92, PAS: 70, DRI: 81, DEF: 45, PHY: 88"}]
+# """, stream=True)
