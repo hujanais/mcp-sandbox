@@ -1,0 +1,18 @@
+from typing import List
+import requests
+import json
+
+headers = {
+        "Authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJLM09ieUpvc2gyYjhYM2xKbk80Y3BscWNoODdOeDg2SlhhRmJwa3JCRTJBIn0.eyJleHAiOjE3NjAxNzM0ODMsImlhdCI6MTc2MDE0NDY4MywianRpIjoib25ydHJvOmY5MzI0NzVjLTlkYTEtNjNhNy02NWJjLWI3NjhhYzFkZjc2ZSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC9hdXRoL3JlYWxtcy90aGVtaXMtZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJmNjI4NGEwMi1hOWMwLTQ2NGUtYjA0Yy05MDI4MzMyOTNlN2EiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJ0aGVtaXMiLCJzaWQiOiJlYzNlM2ExYi0xNTdhLTRjNmQtOGE1ZC00MmFmYzFhMmZiYmEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsiZGVmYXVsdC1yb2xlcy10aGVtaXMtZGVtbyIsIm9mZmxpbmVfYWNjZXNzIiwidW1hX2F1dGhvcml6YXRpb24iXX0sInJlc291cmNlX2FjY2VzcyI6eyJ0aGVtaXMiOnsicm9sZXMiOlsidGhlbWlzLWphaWMtdGUtZW5naW5lZXIiLCJ0aGVtaXMtdmVuZG9yLWRldmVsb3BlciIsInRoZW1pcy1qYWljLWRhdGEtc2NpZW50aXN0IiwidGhlbWlzLWphaWMtYWRtaW4iXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwiLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsIm5hbWUiOiJGaXJzdE5hbWUgTGFzdE5hbWUiLCJncm91cHMiOlsidGhlbWlzLWphaWMtYWRtaW5zIiwidGhlbWlzLWphaWMtZGF0YS1zY2llbnRpc3RzIiwidGhlbWlzLWphaWMtdGUtZW5naW5lZXJzIiwidGhlbWlzLXZlbmRvci1hIiwidGhlbWlzLXZlbmRvci1iIl0sInByZWZlcnJlZF91c2VybmFtZSI6ImRldiIsImdpdmVuX25hbWUiOiJGaXJzdE5hbWUiLCJmYW1pbHlfbmFtZSI6Ikxhc3ROYW1lIiwiZW1haWwiOiJlbWFpbEBlbWFpbC5jb20ifQ.CUVARFyWW0pNYM9HLdMz3VrPprS2qkbwzY8BC_Ynqcf6ZF14lsq0A4d1qZ-jfegqsIiJBHgAtDBGmyCfmz0iiF8QuE-cMREUXj9dTN924Qct172WY0FnQfucHxil1BQvTURjeckd4PglPjTDVlav2LUIrkqILBZe2wICP95cO7YML0BHwDDKRlmAoxqcsryIlgg3c16N6t9cFawoLOsN_xnrnB7buJWthwmp69Ovp8Cxme6JEpLqCypR3bsEjBJKpS1s6pEwx2wtSXpsUM2rSP4RXyhlwXyG70wOOpZmPrTxu_THHKmFrMDyhnEeV_J6pYul2jsjcqTo5dI9EFjEfQ",
+        "Content-Type": "application/json"
+}
+
+def get_model(model_id: str, model_type: str, model_name:str, vendor_name: str ) -> List[dict]:
+    """Gets all models present in the table.
+
+        Args: model_id (Optional[str]): model_id to filter to, if provided model_type (Optional[str]): model_type to filter to, if provided model_name (Optional[str]): model_name to filter to, if provided vendor_name (Optional[str]): vendor_name to filter to, if provided db (Session): the current database session user_info (UserInfo): the current user enforcer
+
+        Returns: List[dict]: A list of every model object in the table.
+    """
+    response = requests.get("http://localhost:8081/dms/api/model", headers=headers)
+    return response.json()

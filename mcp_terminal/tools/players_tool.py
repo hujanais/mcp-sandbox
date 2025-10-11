@@ -97,6 +97,6 @@ class PlayerDatabaseTool(Toolkit):
 
 if __name__ == "__main__":
     tool = PlayerDatabaseTool()
-    player = tool.get_player_rating("messi")
+    player = tool.get_player_rating("isak")
     print(player)
 

@@ -11,7 +11,7 @@ from database.models import TaskStatus
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from mcp.server.fastmcp import Context, FastMCP
+from fastmcp import Context, FastMCP
 from database.db_utils import DBUtils
 from database.pydantic_models import PyModel, PyResult, PyTask, PyDataset
 from database.models import Model, Task, Result, Dataset

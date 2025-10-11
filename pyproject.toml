@@ -6,7 +6,6 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "ollama>=0.5.1",
-    "mcp[cli]>=1.12.4",
     "openai>=1.99.6",
     "psycopg2-binary>=2.9.10",
     "python-dotenv>=1.1.1",
@@ -18,6 +17,7 @@ dependencies = [
     "phidata>=2.7.10",
     "agno>=2.1.0",
     "huggingface-hub>=0.35.3",
+    "fastmcp>=2.12.4",
 ]
 
 [dependency-groups]

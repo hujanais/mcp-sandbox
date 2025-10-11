@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tools.python_tool import PythonTools
-from llm_models.huggingface_model import hf_model
+from llm_models.llm_models import hf_model, openai_model
 
 load_dotenv()
 
@@ -338,7 +338,7 @@ alt.Chart(df).mark_bar().encode(
 ```
 """
 agent = Agent(
-    model=hf_model,
+    model=openai_model,
     system_message=systemPrompt,
     reasoning=True)
 
