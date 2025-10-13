@@ -1,6 +1,8 @@
+import json
 from typing import Dict, Optional
 import os
 from typing import Any, List, Union
+from fuzzywuzzy import fuzz
 
 import pandas as pd
 from pydantic import BaseModel, Field
@@ -76,23 +78,58 @@ class Player(BaseModel):
 
 class PlayerDatabaseTool(Toolkit):
     """PlayerDatabaseTool that retrieves player information."""
+    
     def __init__(self, **kwargs):
         tools: List[Any] = [self.get_player_rating]
         self.dfs = pd.read_csv("./data/all_players.csv")
-        self.dfs = self.dfs.iloc[:, 2:] # drop the first two columns
+        self.dfs = self.dfs.iloc[:, 2:]  # drop the first two columns
         super().__init__(name="PlayerDatabaseTool", tools=tools, **kwargs)
 
-    def get_player_rating(self, name: str) -> str:
+    def get_player_rating(self, name: str) -> str | None:
         """Retrieves player attributes based on the player name.
 
         :param name: The name of the player.
-        :return: json representation of the player attributes.
+        :return: json representation of the player attributes or None if not found.
         """
-        filtered_dfs = self.dfs[self.match_exact_name(self.dfs['Name'], name)]
-        return filtered_dfs.to_json(orient="records")
+        # Use str.lower() and str.strip() for the column names
+        filtered_dfs = self.dfs[self.match_name(self.dfs['Name'], name)]
+        if filtered_dfs.empty:
+            return None
 
-    def match_exact_name(self, name_series, name_to_match: str) -> List[bool]:
-        return name_series.apply(lambda x: name_to_match.lower() in [word.lower() for word in x.split()])
+        json_output = filtered_dfs.iloc[0].to_json(orient="index")
+        return json_output
+
+    def match_name(self, name_series: pd.Series, name_to_match: str) -> pd.Series:
+        """Matches player names and returns a boolean series of matches.
+
+        :param name_series: The series of player names.
+        :param name_to_match: The name to be matched.
+        :return: Boolean series for matches.
+        """
+        name_to_match = name_to_match.lower().strip()
+        match_scores = name_series.apply(lambda x: self.calculate_match_score(x.lower().strip(), name_to_match))
+
+        # Return a boolean series for matches where score is greater than 0
+        return match_scores > 90  # Returns True for matches
+
+    def calculate_match_score(self, candidate_name: str, target_name: str) -> int:
+        """Calculates the match score between two names.
+
+        :param candidate_name: A candidate name to check against.
+        :param target_name: The target name to match.
+        :return: An integer match score.
+        """
+        # Check for exact match
+        if candidate_name == target_name:
+            return 100
+        # Check for close match
+        elif fuzz.token_sort_ratio(candidate_name, target_name) >= 80:  # Adjust the threshold as needed
+            return fuzz.token_sort_ratio(candidate_name, target_name)
+        # Check for some match using partial ratio if needed
+        elif fuzz.partial_ratio(candidate_name, target_name) > 0:
+            return fuzz.partial_ratio(candidate_name, target_name)
+        
+        return 0  # No match
 
 
 if __name__ == "__main__":

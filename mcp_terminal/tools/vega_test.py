@@ -1,3 +1,4 @@
+import json
 from typing import List
 import altair as alt
 import pandas as pd                                                                                                                                                                     
@@ -43,7 +44,32 @@ if __name__ == "__main__":
         'site': ['Morris', 'Duluth', 'Grand Rapids', 'Waseca', 'Morris', 'Grand Rapids', 'Waseca', 'Grand Rapids', 'Grand Rapids', 'Duluth']
     })
 
-    print(df)
+
+    # Input Dataframe: this data is always defined outside this function
+    jsonData = '[{"Name": "Alexander Isak", "OVR": 85, "PAC": 85, "SHO": 84, "PAS": 73, "DRI": 86, "DEF": 39, "PHY": 74}, {"Name": "Erling Haaland", "OVR": 91, "PAC": 88, "SHO": 92, "PAS": 70, "DRI": 81, "DEF": 45, "PHY": 88}]'
+    df = pd.DataFrame(json.loads(jsonData))
+
+    # chart = Altair grouped bar chart
+    chart = alt.Chart(df).transform_fold(
+        ['OVR', 'PAC', 'SHO', 'PAS', 'DRI', 'DEF', 'PHY'],
+        as_=['Attribute', 'Value']
+    ).mark_bar().encode(
+        x=alt.X('Attribute:N', title='Attributes'),
+        y=alt.Y('Value:Q', title='Scores', scale=alt.Scale(domain=[0, 100])),
+        color='Name:N'
+    ).properties(
+        width=200,
+        height=300,
+        title='Player Attributes Comparison'
+    ).facet(
+        column='Name:N'
+    ).configure_facet(
+        spacing=10
+    )
+
+    # Always assign the final chart html output to the variable 'result'
+    result = chart.to_html()
+    chart.save('chart.html')
 
     # p1 = [{"Name":"Erling Haaland","OVR":91,"PAC":88,"SHO":92,"PAS":70,"DRI":81,"DEF":45,"PHY":88}]
     # p2 = [{"Name":"Alexander Isak","OVR":85,"PAC":85,"SHO":84,"PAS":73,"DRI":86,"DEF":39,"PHY":74}]

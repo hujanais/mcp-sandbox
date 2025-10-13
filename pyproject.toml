@@ -18,6 +18,13 @@ dependencies = [
     "agno>=2.1.0",
     "huggingface-hub>=0.35.3",
     "fastmcp>=2.12.4",
+    "fastapi[standard]>=0.119.0",
+    "googlesearch-python>=1.3.0",
+    "pycountry>=24.6.1",
+    "google-genai>=1.43.0",
+    "ddgs>=9.6.1",
+    "fuzzywuzzy>=0.18.0",
+    "python-levenshtein>=0.27.1",
 ]
 
 [dependency-groups]
