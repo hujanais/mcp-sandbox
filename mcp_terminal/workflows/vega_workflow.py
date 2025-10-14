@@ -28,6 +28,76 @@ vega_agent = Agent(
     system_message = """
         You are a helpful coding assistant that is an expert in using the Vega-Altair python charting package used to build clear, and informative professional charts to best describe the data.
 
+        You shall expect to receive a json string of data to be visualized with the following schema:
+        class Player(BaseModel):
+            rank: Optional[int] = Field(None, alias="Rank", description="Player’s ranking based on overall rating (OVR) within the FC 25 group.")
+            name: Optional[str] = Field(None, alias="Name", description="The full name of the player.")
+            age: Optional[int] = Field(None, alias="Age", description="The player’s age.")
+            nation: Optional[str] = Field(None, alias="Nation", description="The country the player represents in international competitions.")
+            league: Optional[str] = Field(None, alias="League", description="The football league in which the player currently plays.")
+            team: Optional[str] = Field(None, alias="Team", description="The club team the player is part of.")
+            play_style: Optional[str] = Field(None, alias="play style", description="Specific gameplay traits or tendencies that define the player’s behavior and skillset on the field.")
+            
+            # Player Attributes
+            overall_rating: Optional[int] = Field(None, alias="OVR", description="Overall rating of the player.")
+            pace: Optional[int] = Field(None, alias="PAC", description="The player's speed and ability to outrun opponents.")
+            shooting: Optional[int] = Field(None, alias="SHO", description="The player’s ability to shoot accurately.")
+            passing: Optional[int] = Field(None, alias="PAS", description="The player’s passing ability.")
+            dribbling: Optional[int] = Field(None, alias="DRI", description="The player’s ball control and ability to maneuver.")
+            defending: Optional[int] = Field(None, alias="DEF", description="The player's defensive capabilities.")
+            physical: Optional[int] = Field(None, alias="PHY", description="The player's physical strength and endurance.")
+            
+            # Extras
+            acceleration: Optional[int] = Field(None, alias="Acceleration", description="The player’s ability to reach maximum speed quickly.")
+            sprint_speed: Optional[int] = Field(None, alias="Sprint Speed", description="The top speed the player can achieve when sprinting.")
+            positioning: Optional[int] = Field(None, alias="Positioning", description="The player's awareness and positioning in attack.")
+            finishing: Optional[int] = Field(None, alias="Finishing", description="The player’s ability to convert scoring chances into goals.")
+            shot_power: Optional[int] = Field(None, alias="Shot Power", description="The strength of the player’s shots on goal.")
+            long_shots: Optional[int] = Field(None, alias="Long Shots", description="The accuracy and power of shots taken from outside the penalty area.")
+            volleys: Optional[int] = Field(None, alias="Volleys", description="The player’s ability to strike the ball cleanly from mid-air.")
+            penalties: Optional[int] = Field(None, alias="Penalties", description="The player's skill at taking penalty kicks.")
+            
+            vision: Optional[int] = Field(None, alias="Vision", description="The player's ability to make accurate passes and see plays develop.")
+            crossing: Optional[int] = Field(None, alias="Crossing", description="The ability to deliver accurate crosses from wide areas.")
+            free_kick_accuracy: Optional[int] = Field(None, alias="Free Kick Accuracy", description="The player’s precision when taking free kicks.")
+            short_passing: Optional[int] = Field(None, alias="Short Passing", description="The accuracy and skill in making short-distance passes.")
+            long_passing: Optional[int] = Field(None, alias="Long Passing", description="The ability to deliver accurate long-range passes.")
+            curve: Optional[int] = Field(None, alias="Curve", description="The player’s ability to bend the ball during passes or shots.")
+            
+            # Dribbling and Agility
+            dribbling: Optional[int] = Field(None, alias="Dribbling", description="The player’s ball control and ability to maneuver in tight spaces.")
+            agility: Optional[int] = Field(None, alias="Agility", description="How quickly and smoothly the player can change direction.")
+            balance: Optional[int] = Field(None, alias="Balance", description="The player’s stability and ability to stay on their feet under pressure.")
+            reactions: Optional[int] = Field(None, alias="Reactions", description="The player’s responsiveness to unpredictable events during the game.")
+            ball_control: Optional[int] = Field(None, alias="Ball Control", description="How well the player controls the ball while moving.")
+            
+            # Mentality and Defense
+            composure: Optional[int] = Field(None, alias="Composure", description="The player’s calmness under pressure.")
+            interceptions: Optional[int] = Field(None, alias="Interceptions", description="The player’s ability to read and intercept passes.")
+            heading_accuracy: Optional[int] = Field(None, alias="Heading Accuracy", description="The player's precision when attempting to head the ball.")
+            defensive_awareness: Optional[int] = Field(None, alias="Def Awareness", description="The player’s positioning and ability to anticipate defensive situations.")
+            standing_tackle: Optional[int] = Field(None, alias="Standing Tackle", description="The player’s ability to win the ball with a standing tackle.")
+            sliding_tackle: Optional[int] = Field(None, alias="Sliding Tackle", description="The skill and accuracy of the player’s sliding tackles.")
+            
+            # Physical Attributes
+            jumping: Optional[int] = Field(None, alias="Jumping", description="The player’s ability to jump high during headers or challenges.")
+            stamina: Optional[int] = Field(None, alias="Stamina", description="The player’s endurance and ability to perform at a high level throughout the match.")
+            strength: Optional[int] = Field(None, alias="Strength", description="The player’s physical power and ability to win physical challenges.")
+            aggression: Optional[int] = Field(None, alias="Aggression", description="The player’s determination and intensity in winning challenges and duels.")
+            
+            # Technical Skills
+            weak_foot: Optional[int] = Field(None, alias="Weak foot", description="The player’s proficiency with their non-dominant foot (rated from 1 to 5 stars).")
+            skill_moves: Optional[int] = Field(None, alias="Skill moves", description="The player’s ability to perform advanced dribbling moves (rated from 1 to 5 stars).")
+            preferred_foot: Optional[str] = Field(None, alias="Preferred foot", description="Indicates whether the player prefers using their left or right foot.")
+            
+            # Goalkeeping Attributes (if applicable)
+            gk_diving: Optional[int] = Field(None, alias="GK Diving", description="The goalkeeper’s ability to dive and make saves.")
+            gk_handling: Optional[int] = Field(None, alias="GK Handling", description="The goalkeeper’s skill in catching or holding onto the ball.")
+            gk_kicking: Optional[int] = Field(None, alias="GK Kicking", description="The accuracy and power of the goalkeeper’s kicks when distributing the ball.")
+            gk_positioning: Optional[int] = Field(None, alias="GK Positioning", description="The goalkeeper’s ability to position themselves effectively during defensive situations.")
+            gk_reflexes: Optional[int] = Field(None, alias="GK Reflexes", description="The goalkeeper’s quickness in reacting to shots.")
+
+        Obviously for charting purposes, you should just drop any non-numeric columns like Name, Position, Nation, League, Team, play style, Preferred foot, Alternative positions.
         You shall return only the code without any explanations. The format to return is very specific and needs to be in the following boilerplate template:
 
         ```python
@@ -36,7 +106,8 @@ vega_agent = Agent(
         import pandas as pd
         import math
 
-        # Input Dataframe: this data is always defined outside this function
+        # The input data is of type json string.       
+        jsonData = {"Name": "Lionel Messi", "PAC": 96, "SHO": 92, "PAS": 91, ... }
         df = pd.DataFrame(json.loads(jsonData))
 
         # chart = <The implementation of the chart code>
@@ -118,5 +189,5 @@ if __name__ == "__main__":
     )
 
     main_workflow.print_response(
-        input="Analyze Lionel Messi."
+        input="Analyze Lionel Messi's attacking attributes."
     )
