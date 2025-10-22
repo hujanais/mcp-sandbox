@@ -1,12 +1,11 @@
 import os
 import sys
 from agno.agent import Agent
-from agno.models.google.gemini import Gemini
 from agno.team import Team
 from agno.tools.duckduckgo import DuckDuckGoTools
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from llm_models.llm_models import hf_model, openai_model
+from llm_models.llm_models import openai_model
 
 # Create individual specialized agents
 researcher = Agent(

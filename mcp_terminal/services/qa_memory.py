@@ -3,12 +3,14 @@ from typing import List
 
 from pydantic import BaseModel
 
+
 class RoleMessage(BaseModel):
     role: str
     content: str
 
     def __init__(self, role: str, content: str):
         super().__init__(role=role, content=content)
+
 
 class QAMemory:
     """
@@ -19,6 +21,7 @@ class QAMemory:
             {"role": "assistant", "content": response.choices[0].message.content}
         ],
     """
+
     def __init__(self, system_prompt: str, depth):
         self.depth = depth
         self.system_prompt = system_prompt
@@ -38,7 +41,7 @@ class QAMemory:
         numOfLines = len(self.history)
         if numOfLines > self.depth:
             self.history.popleft()
-            
+
     def clear(self):
         """
         Clear the history.

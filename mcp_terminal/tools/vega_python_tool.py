@@ -5,8 +5,10 @@ import altair as alt
 import math
 from agno.tools import Toolkit
 
+
 class AltairVegaTools(Toolkit):
     """AltairVegaTools that will be able to run Altair and Vega python code to the chart html."""
+
     def __init__(self, **kwargs):
         tools: List[Any] = [self.run_python_code]
         super().__init__(name="Altair_Vega_Python_Tool", tools=tools, **kwargs)
@@ -29,7 +31,7 @@ class AltairVegaTools(Toolkit):
             safe_locals = {"df": df, "result": result}
             exec(code, safe_globals, safe_locals)
 
-            output = safe_locals.get('result', None)
+            output = safe_locals.get("result", None)
 
             return output or "No result"
         except Exception as e:

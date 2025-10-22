@@ -1,13 +1,9 @@
-from ast import List
-import io
 import json
-import sys
 from textwrap import dedent
-from typing import Dict
 import altair as alt
 import math
-from vega_datasets import data
 import pandas as pd
+
 
 class PythonTools:
     def __init__(self):
@@ -16,7 +12,7 @@ class PythonTools:
 
     def add_counter(self) -> int:
         """A simple function that adds 1 to a counter and returns the new value.
-        
+
         :return: the new value of the counter.
         """
         self.counter += 1
@@ -40,12 +36,13 @@ class PythonTools:
             safe_locals = {"df": df, "result": result}
             exec(code, safe_globals, safe_locals)
 
-            output = safe_locals.get('result', None)
+            output = safe_locals.get("result", None)
 
             return output or "No result"
         except Exception as e:
             return f"ERROR: {str(e)}"
-        
+
+
 if __name__ == "__main__":
     tool = PythonTools()
     code = dedent("""
@@ -107,6 +104,9 @@ import altair as alt
     # exec(code, safe_globals, safe_locals)
     # print(safe_locals.get('result'))
 
-    jsonStr = [{"Name: Alexander Isak, OVR: 85, PAC: 85, SHO: 84, PAS: 73, DRI: 86, DEF: 39, PHY: 74"}, {"Name: Erling Haaland, OVR: 91, PAC: 88, SHO: 92, PAS: 70, DRI: 81, DEF: 45, PHY: 88"}]
+    jsonStr = [
+        {"Name: Alexander Isak, OVR: 85, PAC: 85, SHO: 84, PAS: 73, DRI: 86, DEF: 39, PHY: 74"},
+        {"Name: Erling Haaland, OVR: 91, PAC: 88, SHO: 92, PAS: 70, DRI: 81, DEF: 45, PHY: 88"},
+    ]
     result = tool.run_python_code(code, jsonStr)
     print(result)

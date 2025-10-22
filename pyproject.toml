@@ -25,6 +25,8 @@ dependencies = [
     "ddgs>=9.6.1",
     "fuzzywuzzy>=0.18.0",
     "python-levenshtein>=0.27.1",
+    "fastapi-keycloak>=1.1.0",
+    "pydantic>=2.12.0",
 ]
 
 [dependency-groups]

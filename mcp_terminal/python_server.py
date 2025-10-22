@@ -11,13 +11,15 @@ from mcp_terminal.tools.python_tool import PythonTools
 mcp = FastMCP("mcp-demo", host="0.0.0.0", port=8051)
 tool = PythonTools()
 
+
 @mcp.tool()
 def add_count():
     """Increment the count.
-    
+
     returns the new count
     """
     return tool.add_counter()
+
 
 @mcp.tool
 def python_tool(code: str, data: pd.Dataframe) -> str:
@@ -33,6 +35,7 @@ def python_tool(code: str, data: pd.Dataframe) -> str:
     """
     result = tool.run_python_code(code, data)
     return result
+
 
 if __name__ == "__main__":
     transport = "sse"  #  stdio, sse

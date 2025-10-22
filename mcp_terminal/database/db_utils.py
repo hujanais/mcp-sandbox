@@ -2,15 +2,14 @@ from collections.abc import Sequence
 from contextlib import contextmanager
 import json
 from typing import Any, Optional
-from sqlalchemy import (
-    MetaData, Row, create_engine, text
-)
+from sqlalchemy import MetaData, Row, create_engine, text
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import joinedload
 from dotenv import load_dotenv
 import os
 
 from database.models import Base, Dataset, Model, Result, Task, TaskStatus
+
 
 class DBUtils:
     """
@@ -24,7 +23,7 @@ class DBUtils:
         Initialize the database utility class.
         Loads environment variables for database connection parameters.
         """
-    # Load environment variables from .env file
+        # Load environment variables from .env file
         load_dotenv()
 
         self.DB_USER = os.getenv("DB_USER")
@@ -33,22 +32,19 @@ class DBUtils:
         self.DB_PORT = os.getenv("DB_PORT", "5432")
         self.DB_NAME = os.getenv("DB_NAME")
 
-        self.DATABASE_URL = f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        self.DATABASE_URL = (
+            f"postgresql+psycopg2://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
 
         # Create engine (long-lived, app-wide)
         self.engine = create_engine(
             self.DATABASE_URL,
-            echo=False,         # set True to log SQL
-            future=True
+            echo=False,  # set True to log SQL
+            future=True,
         )
 
         # Session factory (creates new sessions when needed)
-        self.SessionLocal = sessionmaker(
-            bind=self.engine,
-            autoflush=False,
-            autocommit=False,
-            expire_on_commit=False
-        )
+        self.SessionLocal = sessionmaker(bind=self.engine, autoflush=False, autocommit=False, expire_on_commit=False)
 
         if reset_db:
             # Drop all tables if reset_db is True
@@ -74,19 +70,16 @@ class DBUtils:
         schema_info = {}
         for table in metadata.tables.values():
             columns = {column.name: str(column.type) for column in table.columns}
-            
+
             # Get foreign key relationships
             foreign_keys = {}
             for column in table.columns:
                 # Check if the column has foreign key constraints
                 if column.foreign_keys:
                     foreign_keys[column.name] = [fk.column.table.name for fk in column.foreign_keys]
-            
-            schema_info[table.name] = {
-                "columns": columns,
-                "foreign_keys": foreign_keys
-            }
-        
+
+            schema_info[table.name] = {"columns": columns, "foreign_keys": foreign_keys}
+
         schema_json = json.dumps(schema_info, indent=4)
         print(schema_json)
         return schema_json
@@ -113,7 +106,7 @@ class DBUtils:
         """
         with self.get_db() as db:
             try:
-                result = db.execute(text(sql_statement))
+                db.execute(text(sql_statement))
                 db.commit()  # Commit the transaction if it's an INSERT or UPDATE
                 return "SQL statement executed successfully."
             except Exception as e:
@@ -125,13 +118,13 @@ class DBUtils:
     def create_model(self, model_name: str) -> Model:
         """
         Create a new model in the database.
-        
+
         Args:
             model_name (str): The name of the model to be created.
-            
+
         Returns:
             Model: A SQLAlchemy Model object representing the created model
-                    
+
         Example:
             >>> model = create_model("bert-base-uncased")
             >>> print(f"Created model: {model.model_id} - {model.model_name}")
@@ -150,13 +143,13 @@ class DBUtils:
     def get_model(self, model_id: Optional[int] = None) -> list[Model]:
         """
         Retrieve model(s) from the database.
-        
+
         Args:
             model_id (Optional[int]): The specific model ID to retrieve. If None, returns all models.
-            
+
         Returns:
             list[Model]: List of SQLAlchemy Model objects. If model_id is provided, returns a list with one model.
-            
+
         Example:
             >>> all_models = get_model()  # Get all models
             >>> specific_model = get_model(512)  # Get specific model
@@ -174,14 +167,14 @@ class DBUtils:
     def update_model(self, model_id: int, new_name: str) -> Model:
         """
         Update the name of an existing model.
-        
+
         Args:
             model_id (int): The ID of the model to update.
             new_name (str): The new name for the model.
-            
+
         Returns:
             Model: The updated SQLAlchemy model object
-            
+
         Example:
             >>> updated_model = update_model(5000, "bert-large-uncased")
         """
@@ -198,20 +191,20 @@ class DBUtils:
         except Exception as e:
             print(f"Error updating model: {str(e)}")
             raise
-        
+
     def delete_model(self, model_id: int) -> str:
         """
         Delete a model from the database.
-        
+
         Args:
             model_id (int): The ID of the model to delete.
-            
+
         Returns:
             str: successs or error message
-            
+
         Note:
             This operation will cascade delete all associated tasks and results.
-            
+
         Example:
             >>> success = delete_model(5000)
             >>> print(f"Model deletion: {'Success' if success else 'Failed'}")
@@ -227,19 +220,19 @@ class DBUtils:
                     db.commit()
                     return "Model has been deleted"
         except Exception as e:
-            return (f"Error deleting model: {str(e)}")
+            return f"Error deleting model: {str(e)}"
 
     # --- DATASET CRUD ---
     def create_dataset(self, dataset_name: str) -> Dataset:
         """
         Create a new dataset in the database.
-        
+
         Args:
             dataset_name (str): The name of the dataset to be created.
-            
+
         Returns:
             Dataset: The newly created dataset object with generated dataset_id.
-            
+
         Example:
             >>> dataset = create_dataset("imagenet-1k")
             >>> print(f"Created dataset: {dataset.dataset_id} - {dataset.dataset_name}")
@@ -252,18 +245,18 @@ class DBUtils:
                 db.refresh(dataset)
                 return dataset
         except Exception as e:
-            raise(f"Error creating dataset: {str(e)}")
+            raise (f"Error creating dataset: {str(e)}")
 
     def get_dataset(self, dataset_id: Optional[str] = None) -> list[Dataset]:
         """
         Retrieve dataset(s) from the database.
-        
+
         Args:
             dataset_id (Optional[str]): The specific dataset ID to retrieve. If None, returns all datasets.
-            
+
         Returns:
             list[Dataset]: List of Dataset objects. If dataset_id is provided, returns a list with one dataset.
-            
+
         Example:
             >>> all_datasets = get_dataset()  # Get all datasets
             >>> specific_dataset = get_dataset(5000)  # Get specific dataset
@@ -272,22 +265,22 @@ class DBUtils:
             with self.get_db() as db:
                 if dataset_id:
                     return db.query(Dataset).filter(Dataset.dataset_id == dataset_id).all()
-                
+
                 return db.query(Dataset).all()
         except Exception as e:
-            raise(f"Error retrieving datasets: {str(e)}")
+            raise (f"Error retrieving datasets: {str(e)}")
 
     def update_dataset(self, dataset_id: int, new_name: str) -> Dataset:
         """
         Update the name of an existing dataset.
-        
+
         Args:
             dataset_id (int): The ID of the dataset to update.
             new_name (str): The new name for the dataset.
-            
+
         Returns:
             Dataset: The updated dataset object, or None if dataset not found.
-            
+
         Example:
             >>> updated_dataset = update_dataset(5000, "imagenet-21k")
             >>> print(f"Updated dataset name to: {updated_dataset.dataset_name}")
@@ -303,21 +296,21 @@ class DBUtils:
                 else:
                     raise ValueError(f"Dataset with ID {dataset_id} not found")
         except Exception as e:
-            raise(f"Error updating dataset: {str(e)}")
+            raise (f"Error updating dataset: {str(e)}")
 
     def delete_dataset(self, dataset_id: int) -> bool:
         """
         Delete a dataset from the database.
-        
+
         Args:
             dataset_id (int): The ID of the dataset to delete.
-            
+
         Returns:
             bool: True if the dataset was successfully deleted, False if dataset not found.
-            
+
         Note:
             This operation will remove the dataset from all associated tasks.
-            
+
         Example:
             >>> success = delete_dataset(5000)
             >>> print(f"Dataset deletion: {'Success' if success else 'Failed'}")
@@ -331,20 +324,20 @@ class DBUtils:
                     return True
                 return False
         except Exception as e:
-            raise(f"Error deleting dataset: {str(e)}")
+            raise (f"Error deleting dataset: {str(e)}")
 
     # --- TASK CRUD ---
     def create_task(self, model_id: int, dataset_ids: list[str]) -> Task:
         """
         Create a new task in the database.
-        
+
         Args:
             model_id (int): The ID of the model to use for this task.
             dataset_ids (list[str]): List of dataset IDs to associate with this task.
-            
+
         Returns:
             Task: The newly created SQLAlchemy task object with generated task_id and associated datasets.
-            
+
         Example:
             >>> task = create_task(123, ["dataset-1", "dataset-2"])
             >>> print(f"Created task: {task.task_id} with {len(task.datasets)} datasets")
@@ -352,28 +345,24 @@ class DBUtils:
         try:
             with self.get_db() as db:
                 datasets = db.query(Dataset).filter(Dataset.dataset_id.in_(dataset_ids)).all()
-                task = Task(
-                    model_id=model_id,
-                    status=TaskStatus.QUEUED,
-                    datasets=datasets
-                )
+                task = Task(model_id=model_id, status=TaskStatus.QUEUED, datasets=datasets)
                 db.add(task)
                 db.commit()
                 db.refresh(task)
                 return task
         except Exception as e:
-            raise(f"Error creating task: {str(e)}")
+            raise (f"Error creating task: {str(e)}")
 
     def get_task(self, task_id: Optional[int] = None) -> list[Task]:
         """
         Retrieve task(s) from the database with related model and dataset information.
-        
+
         Args:
             task_id (Optional[int]): The specific task ID to retrieve. If None, returns all tasks.
-            
+
         Returns:
             list[Task]: List of SQLAlchemy Task objects with loaded model and datasets relationships.
-            
+
         Example:
             >>> all_tasks = get_task()  # Get all tasks with relationships
             >>> specific_task = get_task(5000)  # Get specific task
@@ -381,28 +370,25 @@ class DBUtils:
         """
         try:
             with self.get_db() as db:
-                query = db.query(Task).options(
-                    joinedload(Task.model),
-                    joinedload(Task.datasets)
-                )
+                query = db.query(Task).options(joinedload(Task.model), joinedload(Task.datasets))
                 if task_id:
                     return query.filter(Task.task_id == task_id).all()
                 else:
                     return query.all()
         except Exception as e:
-            raise(f"Error retrieving tasks: {str(e)}")
+            raise (f"Error retrieving tasks: {str(e)}")
 
     def update_task_status(self, task_id: int, new_status: TaskStatus) -> Task:
         """
         Update the status of an existing task.
-        
+
         Args:
             task_id (int): The ID of the task to update.
             new_status (TaskStatus): The new status for the task (QUEUED, RUNNING, SUCCESS, FAILED).
-            
+
         Returns:
             Task: The updated SQLAlchemy task object.
-                        
+
         Example:
             >>> updated_task = update_task_status(5000, TaskStatus.SUCCESS)
             >>> print(f"Task status updated to: {updated_task.status.value}")
@@ -420,21 +406,21 @@ class DBUtils:
                 else:
                     raise ValueError(f"Task with ID {task_id} not found")
         except Exception as e:
-            raise(f"Error updating task status: {str(e)}")
+            raise (f"Error updating task status: {str(e)}")
 
     def delete_task(self, task_id: int) -> str:
         """
         Delete a task from the database.
-        
+
         Args:
             task_id (int): The ID of the task to delete.
-            
+
         Returns:
             str: Success message if the task was successfully deleted.
-            
+
         Note:
             This operation will cascade delete all associated results.
-            
+
         Example:
             >>> success = delete_task(5000)
             >>> print(f"Task deletion: {success}")
@@ -449,21 +435,21 @@ class DBUtils:
                 else:
                     raise ValueError(f"Task with ID {task_id} not found")
         except Exception as e:
-            raise(f"Error deleting task: {e}")
+            raise (f"Error deleting task: {e}")
 
     # --- RESULT CRUD ---
     def create_result(self, task_id: int, category: str, value: float) -> Result:
         """
         Create a new result in the database.
-        
+
         Args:
             task_id (int): The ID of the task this result belongs to.
             category (str): The category/class label for this result (e.g., 'dog', 'cat').
             value (float): The numerical value/score for this result.
-            
+
         Returns:
             Result: The newly created result object with generated result_id.
-            
+
         Example:
             >>> result = create_result("task-123", "dog", 95.5)
             >>> print(f"Created result: {result.result_id} - {result.category}: {result.value}")
@@ -476,45 +462,43 @@ class DBUtils:
                 db.refresh(result)
                 return result
         except Exception as e:
-            raise(f"Error creating result: {str(e)}")
+            raise (f"Error creating result: {str(e)}")
 
     def get_result(self, result_id: Optional[int] = None) -> list[Result]:
         """
         Retrieve result(s) from the database.
-        
+
         Args:
             result_id (Optional[int]): The specific result ID to retrieve. If None, returns all results.
-            
+
         Returns:
             list[Result]: List of SQLAlchemy Result objects. If result_id is provided, returns a list with one result.
-            
+
         Example:
             >>> all_results = get_result()  # Get all results
             >>> specific_result = get_result(5000)  # Get specific result
         """
         try:
             with self.get_db() as db:
-                query = db.query(Result).options(
-                    joinedload(Result.task)
-                )
+                query = db.query(Result).options(joinedload(Result.task))
                 if result_id:
                     return query.filter(Result.result_id == result_id).all()
                 else:
                     return query.all()
         except Exception as e:
-            raise(f"Error retrieving results: {str(e)}")
+            raise (f"Error retrieving results: {str(e)}")
 
     def update_result_value(self, result_id: int, new_value: float) -> Result:
         """
         Update the value of an existing result.
-        
+
         Args:
             result_id (int): The ID of the result to update.
             new_value (float): The new numerical value for the result.
-            
+
         Returns:
             Result: The updated SQLAlchemy result object.
-            
+
         Example:
             >>> updated_result = update_result_value(5000, 98.7)
             >>> print(f"Result value updated to: {updated_result.value}")
@@ -530,18 +514,18 @@ class DBUtils:
                 else:
                     raise ValueError(f"Result with ID {result_id} not found")
         except Exception as e:
-            raise(f"Error updating result value: {str(e)}")
+            raise (f"Error updating result value: {str(e)}")
 
     def delete_result(self, result_id: int) -> str:
         """
         Delete a result from the database.
-        
+
         Args:
             result_id (int): The ID of the result to delete.
-            
+
         Returns:
             str: Success message if the result was successfully deleted.
-            
+
         Example:
             >>> success = delete_result(5000)
             >>> print(f"Result deletion: {success}")
@@ -556,20 +540,21 @@ class DBUtils:
                 else:
                     raise ValueError(f"Result with ID {result_id} not found")
         except Exception as e:
-            raise(f"Error deleting result: {str(e)}")
+            raise (f"Error deleting result: {str(e)}")
+
 
 if __name__ == "__main__":
     db_utils = DBUtils(reset_db=True)  # Set to True to reset the database
 
     # Create models
-    m1 = db_utils.create_model('model_a')
-    m2 = db_utils.create_model('model_b')
+    m1 = db_utils.create_model("model_a")
+    m2 = db_utils.create_model("model_b")
 
     # Create datasets
-    d1 = db_utils.create_dataset('dataset_a')
-    d2 = db_utils.create_dataset('dataset_b')
-    d3 = db_utils.create_dataset('dataset_c')
-    d4 = db_utils.create_dataset('dataset_d')
+    d1 = db_utils.create_dataset("dataset_a")
+    d2 = db_utils.create_dataset("dataset_b")
+    d3 = db_utils.create_dataset("dataset_c")
+    d4 = db_utils.create_dataset("dataset_d")
 
     # Create tasks
     task1 = db_utils.create_task(m1.model_id, [d1.dataset_id, d2.dataset_id])
@@ -577,13 +562,13 @@ if __name__ == "__main__":
     task3 = db_utils.create_task(m2.model_id, [d3.dataset_id, d4.dataset_id])
 
     # Create Results
-    db_utils.create_result(task1.task_id, 'dog', 90.9)
-    db_utils.create_result(task1.task_id, 'cat', 78.9)
-    db_utils.create_result(task1.task_id, 'bird', 34.9)
+    db_utils.create_result(task1.task_id, "dog", 90.9)
+    db_utils.create_result(task1.task_id, "cat", 78.9)
+    db_utils.create_result(task1.task_id, "bird", 34.9)
 
-    db_utils.create_result(task2.task_id, 'dog', 60.9)
-    db_utils.create_result(task2.task_id, 'cat', 98.9)
-    db_utils.create_result(task2.task_id, 'bird', 88.9)
+    db_utils.create_result(task2.task_id, "dog", 60.9)
+    db_utils.create_result(task2.task_id, "cat", 98.9)
+    db_utils.create_result(task2.task_id, "bird", 88.9)
 
     # try:
     #     while True:

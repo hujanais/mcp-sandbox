@@ -38,9 +38,7 @@ def simple_tools():
     ]
 
     # Initial prompts
-    completion = client.chat.completions.create(
-        model="o4-mini", messages=messages, tools=tools
-    )
+    completion = client.chat.completions.create(model="o4-mini", messages=messages, tools=tools)
 
     # collect tool calls
     for tool_call in completion.choices[0].message.tool_calls:
@@ -59,9 +57,7 @@ def simple_tools():
         )
 
     # send tool results back to llm.
-    completion = client.chat.completions.create(
-        model="o4-mini", messages=messages, tools=tools
-    )
+    completion = client.chat.completions.create(model="o4-mini", messages=messages, tools=tools)
 
     print(completion)
 

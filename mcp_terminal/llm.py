@@ -8,13 +8,14 @@ load_dotenv()
 
 client = OpenAI()
 
+
 def chat(prompt: str, chat_history: List[RoleMessage]) -> str:
     """
-        Chat with OpenAI using the provided prompt and chat history.
+    Chat with OpenAI using the provided prompt and chat history.
 
-        Args:
-            prompt: The user's prompt.
-            chat_history: The chat history as a list of RoleMessage.
+    Args:
+        prompt: The user's prompt.
+        chat_history: The chat history as a list of RoleMessage.
     """
     messages = chat_history
     messages.append(RoleMessage("user", prompt))
@@ -24,10 +25,12 @@ def chat(prompt: str, chat_history: List[RoleMessage]) -> str:
         #     {"role": "system", "content": "You are a helpful assistant."},
         #     {"role": "user", "content": prompt},
         # ],
-        messages=messages, temperature=0.1
+        messages=messages,
+        temperature=0.1,
     )
 
     return response.choices[0].message.content
+
 
 if __name__ == "__main__":
     # prime the chat with some history
@@ -40,7 +43,7 @@ if __name__ == "__main__":
             if user_input == "exit()":
                 print("Exiting...")
                 break
-            if 'exit' in user_input:
+            if "exit" in user_input:
                 print("Do you mean to exit? Please type 'exit()' to quit.")
                 break
 
@@ -51,5 +54,3 @@ if __name__ == "__main__":
 
     except KeyboardInterrupt:
         print("\nExiting...")
-
-

@@ -1,7 +1,8 @@
 import os
 import webbrowser
 
-class WebBrowserTools():
+
+class WebBrowserTools:
     """Tools for opening a page on the web browser"""
 
     def __init__(self):
@@ -20,8 +21,9 @@ class WebBrowserTools():
         else:
             webbrowser.open_new_tab(url)
 
+
 if __name__ == "__main__":
     tool = WebBrowserTools()
     root = os.getcwd()
-    url =  'file://' + root + '/chart.html'
+    url = "file://" + root + "/chart.html"
     tool.open_page(url)

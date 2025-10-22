@@ -6,6 +6,7 @@ from services.llama_client import LlamaClient
 
 client = LlamaClient(base_url="http://127.0.0.1:8080/v1/chat/completions")
 
+
 def simple_llama_chat():
     tools = [weather_tool_definition]
     messages = [
@@ -23,13 +24,13 @@ def simple_llama_chat():
     print(response)
 
     # collect tool calls
-    if 'tool_calls' not in response or not response['tool_calls']:
+    if "tool_calls" not in response or not response["tool_calls"]:
         print("no tool calls found")
         return
 
-    for tool_call in response['tool_calls']:
-        name = tool_call['function']['name']
-        args = json.loads(tool_call['function']['arguments'])
+    for tool_call in response["tool_calls"]:
+        name = tool_call["function"]["name"]
+        args = json.loads(tool_call["function"]["arguments"])
 
         print(name, args)
 
@@ -38,7 +39,7 @@ def simple_llama_chat():
         messages.append(
             {
                 "role": "tool",
-                "tool_call_id": tool_call['id'],
+                "tool_call_id": tool_call["id"],
                 "name": name,
                 "content": str(result),
             }
@@ -46,12 +47,14 @@ def simple_llama_chat():
 
     print(response)
 
+
 def call_function(name, args):
     if name == "get_weather":
         latitude = args["latitude"]
         longitude = args["longitude"]
 
         return weather_tool(latitude, longitude)
+
 
 if __name__ == "__main__":
     simple_llama_chat()

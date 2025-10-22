@@ -3,18 +3,17 @@ import os
 import json
 from typing import Any, Dict, List, Optional
 from mcp import ClientSession
-from mcp.client.stdio import stdio_client
 from mcp.client.sse import sse_client
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class MCPClient:
     """Client for interacting with OpenAI models using MCP tools."""
 
     def __init__(self):
-        
         # Initialize session and client objects
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
@@ -31,13 +30,9 @@ class MCPClient:
         """Connect to the MCP server and list available tools."""
 
         # Connect to the server
-        stdio_transport = await self.exit_stack.enter_async_context(
-            sse_client("http://localhost:8050/sse")
-        )
+        stdio_transport = await self.exit_stack.enter_async_context(sse_client("http://localhost:8050/sse"))
         self.stdio, self.write = stdio_transport
-        self.session = await self.exit_stack.enter_async_context(
-            ClientSession(self.stdio, self.write)
-        )
+        self.session = await self.exit_stack.enter_async_context(ClientSession(self.stdio, self.write))
 
         # Initialize the connection
         await self.session.initialize()
@@ -47,10 +42,10 @@ class MCPClient:
         available_tools = await self.get_mcp_tools()
         print("Available tools:")
         for tool in available_tools:
-            print(tool['function']['name'])
+            print(tool["function"]["name"])
 
         # Get database schema for system prompt
-        db_schema = await self.session.call_tool("introspect_db", {})
+        await self.session.call_tool("introspect_db", {})
         self.system_prompt = """You are a helpful assistant that can interact with a database using the following schema definition
         # Enum for task status
         class TaskStatus(enum.Enum):
@@ -143,10 +138,7 @@ class MCPClient:
         # Initial OpenAI API call
         response = await self.openai_client.chat.completions.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": query}
-            ],
+            messages=[{"role": "system", "content": self.system_prompt}, {"role": "user", "content": query}],
             tools=tools,
             tool_choice="auto",
         )

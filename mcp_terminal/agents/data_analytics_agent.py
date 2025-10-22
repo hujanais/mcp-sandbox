@@ -2,8 +2,6 @@ import os
 import sys
 import pandas as pd
 from typing import Any, List
-from agno.agent import Agent
-from agno.models.openai import OpenAIChat
 from agno.tools import Toolkit
 from dotenv import load_dotenv
 
@@ -12,8 +10,10 @@ from tools.python_tool import PythonTools
 
 load_dotenv()
 
+
 class AltairVegaTools(Toolkit):
     """AltairVegaTools that will be able to run Altair and Vega python code to generate the chart html."""
+
     def __init__(self, **kwargs):
         tools: List[Any] = [self.run_python_code]
         super().__init__(name="Altair_Vega_Tool", tools=tools, **kwargs)
@@ -31,7 +31,8 @@ class AltairVegaTools(Toolkit):
         """
         result = PythonTools().run_python_code(code, data)
         return result
-  
+
+
 systemPrompt = """
 You are an expert Vega-Altair developer that will be able to write concise code to creatively visualize Pandas dataframe input.
 When answering, just return the generated response without any further explanation or text.
@@ -135,14 +136,79 @@ Action: I will now send the visualization python code to the Altair tool to gene
 
 # agent.print_response("""Visualize the following dataframe, df = {"year": [2000, 2001, 2002, 2003], "close": [1223, 1243, 1000. 2432]}""", stream=True, show_full_reasoning=True)
 
-fifa_data = pd.DataFrame({
-    'Attribute': ['Overall Rating', 'Pace', 'Shooting', 'Passing', 'Dribbling', 'Defending', 'Physicality', 
-                  'Acceleration', 'Sprint Speed', 'Agility', 'Balance', 'Reactions', 'Ball Control', 
-                  'Dribbling', 'Composure', 'Positioning', 'Finishing', 'Shot Power', 'Long Shots', 
-                  'Volleys', 'Penalties', 'Vision', 'Crossing', 'Free Kick Accuracy', 'Long Passing', 
-                  'Curve', 'Jumping', 'Stamina', 'Strength', 'Aggression'],
-    'Category': ['General']*7 + ['Movement']*5 + ['Dribbling']*3 + ['Attacking']*6 + ['Passing']*5 + ['Physicality']*4,
-    'Rating': [88, 78, 'N/A', 'N/A', 90, 33, 64, 84, 73, 84, 89, 80, 94, 89, 92, 86, 84, 84, 87, 89, 75, 87, 80, 93, 84, 90, 70, 70, 68, 44]
-})
+fifa_data = pd.DataFrame(
+    {
+        "Attribute": [
+            "Overall Rating",
+            "Pace",
+            "Shooting",
+            "Passing",
+            "Dribbling",
+            "Defending",
+            "Physicality",
+            "Acceleration",
+            "Sprint Speed",
+            "Agility",
+            "Balance",
+            "Reactions",
+            "Ball Control",
+            "Dribbling",
+            "Composure",
+            "Positioning",
+            "Finishing",
+            "Shot Power",
+            "Long Shots",
+            "Volleys",
+            "Penalties",
+            "Vision",
+            "Crossing",
+            "Free Kick Accuracy",
+            "Long Passing",
+            "Curve",
+            "Jumping",
+            "Stamina",
+            "Strength",
+            "Aggression",
+        ],
+        "Category": ["General"] * 7
+        + ["Movement"] * 5
+        + ["Dribbling"] * 3
+        + ["Attacking"] * 6
+        + ["Passing"] * 5
+        + ["Physicality"] * 4,
+        "Rating": [
+            88,
+            78,
+            "N/A",
+            "N/A",
+            90,
+            33,
+            64,
+            84,
+            73,
+            84,
+            89,
+            80,
+            94,
+            89,
+            92,
+            86,
+            84,
+            84,
+            87,
+            89,
+            75,
+            87,
+            80,
+            93,
+            84,
+            90,
+            70,
+            70,
+            68,
+            44,
+        ],
+    }
+)
 
 print(fifa_data)

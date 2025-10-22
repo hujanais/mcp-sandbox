@@ -1,7 +1,5 @@
 import os
 import sys
-import pandas as pd
-from typing import Any, List
 from agno.agent import Agent
 from agno.models.openai import OpenAIChat
 from dotenv import load_dotenv
@@ -10,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from tools.players_tool import PlayerDatabaseTool
 
 load_dotenv()
-  
+
 systemPrompt = """
    You have detailed information about soccer players in a database.  When given a player's name, you can retrieve their attributes and statistics from the database.
    When asked about players or comparing players, you will always use the PlayerDatabaseTool to get the player attributes before answering.  Do not make up any player attributes since we have the 
@@ -23,6 +21,7 @@ agent = Agent(
     tools=[PlayerDatabaseTool()],
     system_message=systemPrompt,
     reasoning=True,
-    tool_call_limit=5)
+    tool_call_limit=5,
+)
 
 agent.print_response("Get info for Haaland", stream=True)
